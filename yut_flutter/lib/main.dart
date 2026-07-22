@@ -799,6 +799,19 @@ class _GameScreenState extends State<GameScreen> {
 
             return Stack(
               children: [
+                // DIAGNOSTIC OVERLAY
+                Positioned(
+                  left: 10,
+                  top: 50,
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    color: Colors.black87,
+                    child: Text(
+                      "DIAGNOSTIC: W=${width.toStringAsFixed(1)}, H=${height.toStringAsFixed(1)}, BS=${boardSize.toStringAsFixed(1)}, TS=${tileSize.toStringAsFixed(1)}, Offsets=${offsets.length}",
+                      style: const TextStyle(color: Colors.greenAccent, fontSize: 10, fontFamily: 'monospace'),
+                    ),
+                  ),
+                ),
                 // 1. Board Lines (Background layer)
                 if (offsets.containsKey(10))
                   Positioned(
