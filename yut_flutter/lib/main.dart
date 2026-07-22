@@ -1015,8 +1015,18 @@ class _GameScreenState extends State<GameScreen> {
                               const Spacer(),
                               // Completed medals
                               ...List.generate(controller.players[0].score, (_) => const Icon(Icons.star, color: Colors.amber, size: 16)),
-                              // Unfinished pieces remaining
-                              ...List.generate(4 - controller.players[0].score - controller.players[0].numPieces + controller.players[0].score, (_) => Icon(Icons.circle, color: Colors.cyan.withOpacity(0.5), size: 8)),
+                              // Pieces off the board
+                              ...List.generate(
+                                controller.players[0].pieces.where((p) => p.location == -1).length,
+                                (_) => Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 2),
+                                  child: Image.asset(
+                                    shop.getImagePath(selectedAvatars[0], 1),
+                                    width: 18,
+                                    height: 18,
+                                  ),
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -1042,8 +1052,18 @@ class _GameScreenState extends State<GameScreen> {
                                 child: Row(
                                   mainAxisAlignment: MainAxisAlignment.end,
                                   children: [
-                                    // Unfinished pieces
-                                    ...List.generate(4 - controller.players[1].score - controller.players[1].numPieces + controller.players[1].score, (_) => Icon(Icons.circle, color: Colors.orange.withOpacity(0.5), size: 8)),
+                                    // Pieces off the board
+                                    ...List.generate(
+                                      controller.players[1].pieces.where((p) => p.location == -1).length,
+                                      (_) => Padding(
+                                        padding: const EdgeInsets.symmetric(horizontal: 2),
+                                        child: Image.asset(
+                                          shop.getImagePath(selectedAvatars[1], 1),
+                                          width: 18,
+                                          height: 18,
+                                        ),
+                                      ),
+                                    ),
                                     ...List.generate(controller.players[1].score, (_) => const Icon(Icons.star, color: Colors.amber, size: 16)),
                                     const Spacer(),
                                     Text(controller.isComputerPlaying ? "Computer" : "Player 2", style: const TextStyle(fontWeight: FontWeight.bold)),
@@ -1146,7 +1166,7 @@ class _GameScreenState extends State<GameScreen> {
                 ),
 
                 // 11. Large Primary ROLL BUTTON
-                if (!controller.board.rollEmpty() == false && 
+                if ((controller.board.rollEmpty() || controller.tipsText == "Roll again!") && 
                     !(controller.turn == 1 && controller.isComputerPlaying) && 
                     !controller.isRollInProgress && 
                     !controller.isMoveInProgress && 
