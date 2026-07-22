@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math';
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'domain/board.dart';
@@ -8,39 +9,97 @@ import 'domain/shop.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Shop.instance.initializeShop();
+  runApp(
+    const GlobalErrorBoundary(
+      child: YutApp(),
+    ),
+  );
+}
 
-  ErrorWidget.builder = (FlutterErrorDetails details) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF1E262C),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                "YUT RUNTIME EXCEPTION",
-                style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 20),
+class GlobalErrorBoundary extends StatefulWidget {
+  final Widget child;
+  const GlobalErrorBoundary({super.key, required this.child});
+
+  @override
+  State<GlobalErrorBoundary> createState() => _GlobalErrorBoundaryState();
+}
+
+class _GlobalErrorBoundaryState extends State<GlobalErrorBoundary> {
+  String? _error;
+  String? _stackTrace;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Catch rendering and layout errors
+    ErrorWidget.builder = (FlutterErrorDetails details) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _error == null) {
+          setState(() {
+            _error = details.exception.toString();
+            _stackTrace = details.stack.toString();
+          });
+        }
+      });
+      return const SizedBox();
+    };
+
+    // Catch click/callback/async exceptions
+    ui.PlatformDispatcher.instance.onError = (Object error, StackTrace stack) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          setState(() {
+            _error = error.toString();
+            _stackTrace = stack.toString();
+          });
+        }
+      });
+      return true;
+    };
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_error != null) {
+      return MaterialApp(
+        title: 'Yut Game - Crash Log',
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          brightness: Brightness.dark,
+          scaffoldBackgroundColor: const Color(0xFF1E262C),
+        ),
+        home: Scaffold(
+          body: SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    "GLOBAL RUNTIME EXCEPTION CAUGHT",
+                    style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 20),
+                  ),
+                  const SizedBox(height: 12),
+                  SelectableText(
+                    _error!,
+                    style: const TextStyle(color: Colors.yellow, fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                  const SizedBox(height: 16),
+                  SelectableText(
+                    _stackTrace ?? "",
+                    style: const TextStyle(color: Colors.white70, fontSize: 11, fontFamily: 'monospace'),
+                  ),
+                ],
               ),
-              const SizedBox(height: 12),
-              SelectableText(
-                details.exception.toString(),
-                style: const TextStyle(color: Colors.yellow, fontWeight: FontWeight.bold, fontSize: 16),
-              ),
-              const SizedBox(height: 16),
-              SelectableText(
-                details.stack.toString(),
-                style: const TextStyle(color: Colors.white70, fontSize: 11, fontFamily: 'monospace'),
-              ),
-            ],
+            ),
           ),
         ),
-      ),
-    );
-  };
-
-  await Shop.instance.initializeShop();
-  runApp(const YutApp());
+      );
+    }
+    return widget.child;
+  }
 }
 
 class YutApp extends StatelessWidget {
