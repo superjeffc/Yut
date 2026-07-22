@@ -9,12 +9,7 @@ import 'domain/shop.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Shop.instance.initializeShop();
-  runApp(
-    ChangeNotifierProvider(
-      create: (_) => GameController(isComputerPlaying: true),
-      child: const YutApp(),
-    ),
-  );
+  runApp(const YutApp());
 }
 
 class YutApp extends StatelessWidget {
@@ -22,16 +17,19 @@ class YutApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Yut Game',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        brightness: Brightness.dark,
-        primaryColor: const Color(0xFF56AFC1),
-        scaffoldBackgroundColor: const Color(0xFF1E262C),
-        fontFamily: 'Roboto',
+    return ChangeNotifierProvider(
+      create: (_) => GameController(isComputerPlaying: true),
+      child: MaterialApp(
+        title: 'Yut Game',
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          brightness: Brightness.dark,
+          primaryColor: const Color(0xFF56AFC1),
+          scaffoldBackgroundColor: const Color(0xFF1E262C),
+          fontFamily: 'Roboto',
+        ),
+        home: const TitleScreen(),
       ),
-      home: const TitleScreen(),
     );
   }
 }
@@ -603,6 +601,26 @@ class GameScreen extends StatefulWidget {
 }
 
 class _GameScreenState extends State<GameScreen> {
+  Timer? _blinkTimer;
+  bool _blinkState = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _blinkTimer = Timer.periodic(const Duration(milliseconds: 500), (timer) {
+      if (mounted) {
+        setState(() {
+          _blinkState = !_blinkState;
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _blinkTimer?.cancel();
+    super.dispose();
+  }
   // Calculates coordinates dynamically based on display dimensions
   Map<int, Offset> _calculateTileOffsets(double width, double height) {
     double boardSize = height * 0.58;
@@ -732,7 +750,10 @@ class _GameScreenState extends State<GameScreen> {
                     height: 3.0 * tileSize / 5.0,
                     child: Transform.rotate(
                       angle: rot,
-                      child: Image.asset("assets/images/arrow.png", opacity: const AlwaysStoppedAnimation(0.6)),
+                      child: Opacity(
+                        opacity: 0.6,
+                        child: Image.asset("assets/images/arrow.png"),
+                      ),
                     ),
                   );
                 }),
@@ -742,9 +763,11 @@ class _GameScreenState extends State<GameScreen> {
                   bool isSpecial = Board.specialTiles.contains(tileIdx);
                   bool isHighlighted = controller.highlightedTiles.contains(tileIdx);
 
-                  String tileAsset = isSpecial ? "assets/images/orange_marker.png" : "assets/images/blue_marker.png";
-                  if (isHighlighted) {
-                    tileAsset = isSpecial ? "assets/images/orangemarkerflash.png" : "assets/images/bluemarkerflash.png";
+                  String tileAsset;
+                  if (isHighlighted && _blinkState) {
+                    tileAsset = isSpecial ? "assets/images/orange_marker2.png" : "assets/images/blue_marker2.png";
+                  } else {
+                    tileAsset = isSpecial ? "assets/images/orange_marker.png" : "assets/images/blue_marker.png";
                   }
 
                   return Positioned(
@@ -777,7 +800,10 @@ class _GameScreenState extends State<GameScreen> {
                     height: height / 11.0,
                     child: InkWell(
                       onTap: () => controller.makeMove(32),
-                      child: Image.asset("assets/images/finishflash.png", fit: BoxFit.contain),
+                      child: Image.asset(
+                        _blinkState ? "assets/images/finish2.png" : "assets/images/finish1.png",
+                        fit: BoxFit.contain,
+                      ),
                     ),
                   ),
 
@@ -1144,7 +1170,9 @@ class _SticksRollOverlayState extends State<SticksRollOverlay> {
               height: 200,
               width: 200,
               child: Image.asset(
-                "assets/images/stick$_currentFrame.png",
+                _currentFrame == 1
+                    ? "assets/images/stick.png"
+                    : "assets/images/stick$_currentFrame.png",
                 fit: BoxFit.contain,
               ),
             ),
