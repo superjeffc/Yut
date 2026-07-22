@@ -1,6 +1,6 @@
 {
-    "name": "yut_flutter",
-    "short_name": "yut_flutter",
+    "name": "Yut Game",
+    "short_name": "Yut Game",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

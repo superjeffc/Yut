@@ -23,16 +23,30 @@
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="yut_flutter">
+  <meta name="apple-mobile-web-app-title" content="Yut Game">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
 
-  <title>yut_flutter</title>
+  <title>Yut Game</title>
   <link rel="manifest" href="manifest.json">
 </head>
 <body>
+  <!-- Full screen HTML5 CSS Loader -->
+  <div id="loading-indicator" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: #1E262C; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 99999; font-family: sans-serif; transition: opacity 0.3s ease-in-out; opacity: 1;">
+    <img src="favicon.png" style="width: 80px; height: 80px; margin-bottom: 24px; animation: pulse 1.8s infinite ease-in-out;">
+    <div style="color: #ffffff; font-size: 22px; font-weight: bold; margin-bottom: 8px; letter-spacing: 0.5px;">Yut Game</div>
+    <div style="color: #7F8C8D; font-size: 14px;">Loading game assets...</div>
+    <style>
+      @keyframes pulse {
+        0% { transform: scale(0.95); opacity: 0.8; }
+        50% { transform: scale(1.05); opacity: 1; }
+        100% { transform: scale(0.95); opacity: 0.8; }
+      }
+    </style>
+  </div>
+
   <!--
     You can customize the "flutter_bootstrap.js" script.
     This is useful to provide a custom configuration to the Flutter loader
@@ -58,6 +72,15 @@
     function pauseBackgroundMusic() {
       if (bgMusic) {
         bgMusic.pause();
+      }
+    }
+    function removeLoader() {
+      var loader = document.getElementById('loading-indicator');
+      if (loader) {
+        loader.style.opacity = '0';
+        setTimeout(function() {
+          loader.remove();
+        }, 300);
       }
     }
   </script>

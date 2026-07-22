@@ -27,6 +27,11 @@ void updateMusicPlayback() {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Shop.instance.initializeShop();
+  if (kIsWeb) {
+    try {
+      js.context.callMethod('removeLoader');
+    } catch (_) {}
+  }
   runApp(
     const GlobalErrorBoundary(
       child: YutApp(),
@@ -1223,8 +1228,8 @@ class _GameScreenState extends State<GameScreen> {
                     !controller.board.rollEmpty() &&
                     !(controller.turn == 1 && controller.isComputerPlaying))
                   Positioned(
-                    left: width / 2 + 90,
-                    bottom: height * 0.05,
+                    left: width - 76,
+                    bottom: height * 0.03,
                     width: 60,
                     height: 60,
                     child: InkWell(
@@ -1255,8 +1260,8 @@ class _GameScreenState extends State<GameScreen> {
                 // 9. Roll Slot indicators (Bottom center)
                 Positioned(
                   left: 12,
-                  bottom: height * 0.16,
-                  width: width - 24,
+                  bottom: height * 0.03,
+                  width: width - 88,
                   height: 48,
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -1284,7 +1289,7 @@ class _GameScreenState extends State<GameScreen> {
                 if (offsets.containsKey(15))
                   Positioned(
                     left: 24,
-                    top: offsets[15]!.dy + tileSize + 16,
+                    top: offsets[15]!.dy + tileSize + 20,
                     width: width - 48,
                     child: Column(
                     children: [
@@ -1311,7 +1316,7 @@ class _GameScreenState extends State<GameScreen> {
                     !controller.isGameOver)
                   Positioned(
                     left: width / 2 - 70,
-                    bottom: height * 0.05,
+                    bottom: height * 0.12,
                     width: 140,
                     height: 52,
                     child: ElevatedButton(
