@@ -27,11 +27,6 @@ void updateMusicPlayback() {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Shop.instance.initializeShop();
-  if (kIsWeb) {
-    try {
-      js.context.callMethod('removeLoader');
-    } catch (_) {}
-  }
   runApp(
     const GlobalErrorBoundary(
       child: YutApp(),
@@ -195,6 +190,15 @@ class _TitleScreenState extends State<TitleScreen> with SingleTickerProviderStat
         ),
       );
     }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      updateMusicPlayback();
+      if (kIsWeb) {
+        try {
+          js.context.callMethod('removeLoader');
+        } catch (_) {}
+      }
+    });
   }
 
   void _tickSnow() {
@@ -945,6 +949,7 @@ class _GameScreenState extends State<GameScreen> {
                 Positioned.fill(
                   child: GestureDetector(
                     onTap: () {
+                      if (controller.turn == 1 && controller.isComputerPlaying) return;
                       if (controller.selectedPieceIndex != -1) {
                         controller.cancelSelection();
                       }
@@ -1023,6 +1028,7 @@ class _GameScreenState extends State<GameScreen> {
                     height: tileSize,
                     child: GestureDetector(
                       onTap: () {
+                        if (controller.turn == 1 && controller.isComputerPlaying) return;
                         if (isHighlighted) {
                           controller.makeMove(tileIdx);
                         } else {
@@ -1045,7 +1051,10 @@ class _GameScreenState extends State<GameScreen> {
                     width: tileSize * 2,
                     height: tileSize,
                     child: InkWell(
-                      onTap: () => controller.makeMove(32),
+                      onTap: () {
+                        if (controller.turn == 1 && controller.isComputerPlaying) return;
+                        controller.makeMove(32);
+                      },
                       child: Image.asset(
                         _blinkState ? "assets/images/finish2.png" : "assets/images/finish1.png",
                         fit: BoxFit.contain,
@@ -1083,6 +1092,7 @@ class _GameScreenState extends State<GameScreen> {
                       height: tileSize - 4,
                       child: GestureDetector(
                         onTap: () {
+                          if (controller.turn == 1 && controller.isComputerPlaying) return;
                           if (isRollButtonVisible) return;
                           if (controller.highlightedTiles.contains(piece.location)) {
                             // Execute Move/Stack/Capture!
@@ -1197,20 +1207,30 @@ class _GameScreenState extends State<GameScreen> {
                   ),
                 ),
 
-                // QUIT Button (Middle left of the screen)
+                // QUIT Button (Middle left of the screen, back arrow icon)
                 Positioned(
                   left: 12,
-                  top: height / 2 - 36,
-                  width: 72,
-                  height: 72,
-                  child: InkWell(
-                    onTap: () {
-                      _showQuitConfirmation(context);
-                    },
-                    child: Image.asset(
-                      "assets/images/quit1.png",
-                      fit: BoxFit.contain,
-                      errorBuilder: (_, __, ___) => const Icon(Icons.exit_to_app, color: Colors.white, size: 36),
+                  top: height / 2 - 28,
+                  width: 56,
+                  height: 56,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF2C3E50),
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.3),
+                          blurRadius: 6,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: IconButton(
+                      icon: const Icon(Icons.arrow_back, color: Colors.white, size: 28),
+                      onPressed: () {
+                        if (controller.turn == 1 && controller.isComputerPlaying) return;
+                        _showQuitConfirmation(context);
+                      },
                     ),
                   ),
                 ),
@@ -1223,12 +1243,13 @@ class _GameScreenState extends State<GameScreen> {
                     !controller.isMoveInProgress &&
                     !isRollButtonVisible)
                   Positioned(
-                    left: width - 76,
-                    bottom: height * 0.03,
+                    left: width / 2 + 80,
+                    bottom: height * 0.12,
                     width: 60,
                     height: 60,
                     child: InkWell(
                       onTap: () {
+                        if (controller.turn == 1 && controller.isComputerPlaying) return;
                         controller.selectPiece(-1);
                       },
                       child: Stack(
@@ -1244,7 +1265,7 @@ class _GameScreenState extends State<GameScreen> {
                             bottom: 0,
                             child: Text(
                               "Press me!",
-                              style: TextStyle(fontSize: 8, color: Colors.white, fontWeight: FontWeight.bold, backgroundColor: Colors.black54),
+                              style: TextStyle(fontSize: 8, color: Colors.black87, fontWeight: FontWeight.bold),
                             ),
                           ),
                         ],
@@ -1256,7 +1277,7 @@ class _GameScreenState extends State<GameScreen> {
                 Positioned(
                   left: 12,
                   bottom: height * 0.03,
-                  width: width - 88,
+                  width: width - 24,
                   height: 48,
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -1281,12 +1302,11 @@ class _GameScreenState extends State<GameScreen> {
                 ),
 
                 // 10. Floating Game Rules and Tip Prompts
-                if (offsets.containsKey(15))
-                  Positioned(
-                    left: 24,
-                    top: offsets[15]!.dy + tileSize + 20,
-                    width: width - 48,
-                    child: Column(
+                Positioned(
+                  left: 24,
+                  bottom: height * 0.23,
+                  width: width - 48,
+                  child: Column(
                     children: [
                       Text(
                         controller.statusText,
@@ -1326,6 +1346,7 @@ class _GameScreenState extends State<GameScreen> {
                         ),
                       ),
                       onPressed: () {
+                        if (controller.turn == 1 && controller.isComputerPlaying) return;
                         controller.rollSticks();
                       },
                       child: const Text(
