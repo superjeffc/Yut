@@ -723,15 +723,35 @@ class _TitleScreenState extends State<TitleScreen> with SingleTickerProviderStat
                     context: context,
                     builder: (context) => AlertDialog(
                       backgroundColor: const Color(0xFF2C3E50),
-                      title: const Text("Credits"),
-                      content: const Text(
-                        "Yut Game - Ported to Flutter\nOriginal Android Game by Jeffrey Chan.\nCross-platform conversion by Antigravity.",
-                        style: TextStyle(height: 1.4),
+                      title: const Text("Credits", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      content: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            "Yut Game - Ported to Flutter\n\nDeveloper: Jeffrey Chan\n",
+                            style: TextStyle(color: Colors.white, height: 1.4),
+                          ),
+                          const SizedBox(height: 8),
+                          InkWell(
+                            onTap: () {
+                              if (kIsWeb) {
+                                try {
+                                  js.context.callMethod('open', ['https://github.com/superjeffc']);
+                                } catch (_) {}
+                              }
+                            },
+                            child: const Text(
+                              "Website: https://github.com/superjeffc",
+                              style: TextStyle(color: Colors.cyan, decoration: TextDecoration.underline),
+                            ),
+                          ),
+                        ],
                       ),
                       actions: [
                         TextButton(
                           onPressed: () => Navigator.pop(context),
-                          child: const Text("OK"),
+                          child: const Text("OK", style: TextStyle(color: Colors.white)),
                         )
                       ],
                     ),
@@ -1165,10 +1185,10 @@ class _GameScreenState extends State<GameScreen> {
                   ),
                 ),
 
-                // QUIT Button (Always visible on the bottom left)
+                // QUIT Button (Middle left of the screen)
                 Positioned(
-                  left: width / 2 - 150,
-                  bottom: height * 0.05,
+                  left: 12,
+                  top: height / 2 - 30,
                   width: 60,
                   height: 60,
                   child: InkWell(
