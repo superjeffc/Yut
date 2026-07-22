@@ -388,8 +388,12 @@ class _TitleScreenState extends State<TitleScreen> with SingleTickerProviderStat
                                         value: isP1Selected,
                                         activeColor: Colors.cyan,
                                         onChanged: (val) async {
-                                          if (val == true && selected[1] != animal) {
-                                            shop.changeAvatar(0, animal);
+                                          if (val == true) {
+                                            if (selected[1] == animal) {
+                                              shop.switchAvatars();
+                                            } else {
+                                              shop.changeAvatar(0, animal);
+                                            }
                                             await shop.saveAvatars();
                                             setDialogState(() {});
                                           }
@@ -404,8 +408,12 @@ class _TitleScreenState extends State<TitleScreen> with SingleTickerProviderStat
                                         value: isP2Selected,
                                         activeColor: Colors.orange,
                                         onChanged: (val) async {
-                                          if (val == true && selected[0] != animal) {
-                                            shop.changeAvatar(1, animal);
+                                          if (val == true) {
+                                            if (selected[0] == animal) {
+                                              shop.switchAvatars();
+                                            } else {
+                                              shop.changeAvatar(1, animal);
+                                            }
                                             await shop.saveAvatars();
                                             setDialogState(() {});
                                           }
