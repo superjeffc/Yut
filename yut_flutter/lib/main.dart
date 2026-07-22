@@ -706,14 +706,18 @@ class GameScreen extends StatefulWidget {
 class _GameScreenState extends State<GameScreen> {
   Timer? _blinkTimer;
   bool _blinkState = false;
+  int _animationFrame = 0;
 
   @override
   void initState() {
     super.initState();
-    _blinkTimer = Timer.periodic(const Duration(milliseconds: 500), (timer) {
+    _blinkTimer = Timer.periodic(const Duration(milliseconds: 150), (timer) {
       if (mounted) {
         setState(() {
-          _blinkState = !_blinkState;
+          _animationFrame = (_animationFrame + 1) % 4;
+          if (_animationFrame == 0) {
+            _blinkState = !_blinkState;
+          }
         });
       }
     });
@@ -797,11 +801,8 @@ class _GameScreenState extends State<GameScreen> {
       },
       child: Scaffold(
         backgroundColor: const Color(0xFF1E262C),
-        body: Stack(
-          children: [
-            Positioned.fill(
-              child: LayoutBuilder(
-                builder: (context, constraints) {
+        body: LayoutBuilder(
+          builder: (context, constraints) {
             double width = constraints.maxWidth;
             double height = constraints.maxHeight;
 
@@ -815,19 +816,6 @@ class _GameScreenState extends State<GameScreen> {
 
             return Stack(
               children: [
-                // DIAGNOSTIC OVERLAY
-                Positioned(
-                  left: 10,
-                  top: 50,
-                  child: Container(
-                    padding: const EdgeInsets.all(8),
-                    color: Colors.black87,
-                    child: Text(
-                      "DIAGNOSTIC: W=${width.toStringAsFixed(1)}, H=${height.toStringAsFixed(1)}, BS=${boardSize.toStringAsFixed(1)}, TS=${tileSize.toStringAsFixed(1)}, Offsets=${offsets.length}",
-                      style: const TextStyle(color: Colors.greenAccent, fontSize: 10, fontFamily: 'monospace'),
-                    ),
-                  ),
-                ),
                 // 1. Board Lines (Background layer)
                 if (offsets.containsKey(10) && offsets.containsKey(0) && offsets.containsKey(15))
                   Positioned(
@@ -939,6 +927,17 @@ class _GameScreenState extends State<GameScreen> {
 
                     final offset = offsets[piece.location] ?? Offset.zero;
 
+                    // Determine if this piece should be jumping (is selectable)
+                    bool isSelectable = controller.turn == pIdx &&
+                                        !controller.isGameOver &&
+                                        controller.board.getPosRollCount() > 0 &&
+                                        !controller.isRollInProgress &&
+                                        !controller.isMoveInProgress;
+
+                    String imagePath = isSelectable
+                        ? shop.getJumpFrames(animal, piece.value)[_animationFrame]
+                        : shop.getImagePath(animal, piece.value);
+
                     return AnimatedPositioned(
                       key: ValueKey("piece_${pIdx}_$pieceIdx"),
                       duration: const Duration(milliseconds: 180),
@@ -959,7 +958,7 @@ class _GameScreenState extends State<GameScreen> {
                           alignment: Alignment.center,
                           children: [
                             Image.asset(
-                              shop.getImagePath(animal, piece.value),
+                              imagePath,
                               fit: BoxFit.contain,
                             ),
                             if (piece.value > 1)
@@ -1066,7 +1065,7 @@ class _GameScreenState extends State<GameScreen> {
                       child: Stack(
                         alignment: Alignment.center,
                         children: [
-                          Image.asset(shop.getImagePath(selectedAvatars[controller.turn], 1)),
+                          Image.asset(shop.getJumpFrames(selectedAvatars[controller.turn], 1)[_animationFrame]),
                           const Positioned(
                             bottom: 2,
                             child: Text(
@@ -1210,23 +1209,7 @@ class _GameScreenState extends State<GameScreen> {
                   ),
               ],
             );
-                },
-              ),
-            ),
-            // ROOT DIAGNOSTIC LAYER
-            Positioned(
-              left: 20,
-              top: 120,
-              child: Container(
-                padding: const EdgeInsets.all(12),
-                color: Colors.red,
-                child: const Text(
-                  "ROOT GAMESCREEN ALIVE",
-                  style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
-                ),
-              ),
-            ),
-          ],
+          },
         ),
       ),
     );
