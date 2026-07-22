@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class Shop {
@@ -5,8 +6,9 @@ class Shop {
   
   Shop._internal();
 
-  late SharedPreferences _prefs;
+  SharedPreferences? _prefs;
   bool _initialized = false;
+  final Map<String, dynamic> _fallbackStorage = {};
 
   final Map<String, int> costs = {
     "Seal": 0,
@@ -38,16 +40,30 @@ class Shop {
 
   Future<void> initializeShop() async {
     if (_initialized) return;
-    _prefs = await SharedPreferences.getInstance();
+    try {
+      // Set a 1.5 second timeout on SharedPreferences initialization
+      _prefs = await SharedPreferences.getInstance().timeout(
+        const Duration(milliseconds: 1500),
+        onTimeout: () => throw TimeoutException("SharedPreferences timed out"),
+      );
 
-    // Default unlocks
-    if (_prefs.getInt("Seal") == null) _prefs.setInt("Seal", 1);
-    if (_prefs.getInt("Penguin") == null) _prefs.setInt("Penguin", 1);
-    if (_prefs.getInt("coins") == null) _prefs.setInt("coins", 0);
+      // Default unlocks
+      if (_prefs!.getInt("Seal") == null) _prefs!.setInt("Seal", 1);
+      if (_prefs!.getInt("Penguin") == null) _prefs!.setInt("Penguin", 1);
+      if (_prefs!.getInt("coins") == null) _prefs!.setInt("coins", 0);
 
-    playerAnimals = _prefs.getString("animals") ?? "Seal Penguin";
-    lastSavedAnimals = playerAnimals;
-    _initialized = true;
+      playerAnimals = _prefs!.getString("animals") ?? "Seal Penguin";
+      lastSavedAnimals = playerAnimals;
+    } catch (e) {
+      // Bypasses cookie block and iframe policy blocks on storage
+      playerAnimals = "Seal Penguin";
+      lastSavedAnimals = playerAnimals;
+      _fallbackStorage["Seal"] = 1;
+      _fallbackStorage["Penguin"] = 1;
+      _fallbackStorage["coins"] = 999; // Default coins fallback
+    } finally {
+      _initialized = true;
+    }
   }
 
   // Gets the asset path for a static animal image given a stack value (1 to 4)
@@ -80,16 +96,32 @@ class Shop {
   }
 
   int getCoins() {
-    return _prefs.getInt("coins") ?? 0;
+    if (_prefs != null) {
+      try {
+        return _prefs!.getInt("coins") ?? 0;
+      } catch (_) {}
+    }
+    return _fallbackStorage["coins"] as int? ?? 0;
   }
 
   void addCoins(int amount) {
     int current = getCoins();
-    _prefs.setInt("coins", current + amount);
+    int newValue = current + amount;
+    _fallbackStorage["coins"] = newValue;
+    if (_prefs != null) {
+      try {
+        _prefs!.setInt("coins", newValue);
+      } catch (_) {}
+    }
   }
 
   bool isUnlocked(String animal) {
-    return (_prefs.getInt(animal) ?? 0) != 0;
+    if (_prefs != null) {
+      try {
+        return (_prefs!.getInt(animal) ?? 0) != 0;
+      } catch (_) {}
+    }
+    return (_fallbackStorage[animal] as int? ?? 0) != 0;
   }
 
   bool makePurchase(String animal) {
@@ -97,8 +129,14 @@ class Shop {
     int coins = getCoins();
 
     if (coins >= cost && !isUnlocked(animal)) {
-      _prefs.setInt(animal, 1);
-      _prefs.setInt("coins", coins - cost);
+      _fallbackStorage[animal] = 1;
+      _fallbackStorage["coins"] = coins - cost;
+      if (_prefs != null) {
+        try {
+          _prefs!.setInt(animal, 1);
+          _prefs!.setInt("coins", coins - cost);
+        } catch (_) {}
+      }
       return true;
     }
     return false;
@@ -135,7 +173,12 @@ class Shop {
   }
 
   Future<void> saveAvatars() async {
-    await _prefs.setString("animals", playerAnimals);
+    _fallbackStorage["animals"] = playerAnimals;
+    if (_prefs != null) {
+      try {
+        await _prefs!.setString("animals", playerAnimals);
+      } catch (_) {}
+    }
     lastSavedAnimals = playerAnimals;
   }
 

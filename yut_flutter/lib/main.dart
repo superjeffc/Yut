@@ -797,8 +797,11 @@ class _GameScreenState extends State<GameScreen> {
       },
       child: Scaffold(
         backgroundColor: const Color(0xFF1E262C),
-        body: LayoutBuilder(
-          builder: (context, constraints) {
+        body: Stack(
+          children: [
+            Positioned.fill(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
             double width = constraints.maxWidth;
             double height = constraints.maxHeight;
 
@@ -1207,7 +1210,23 @@ class _GameScreenState extends State<GameScreen> {
                   ),
               ],
             );
-          },
+                },
+              ),
+            ),
+            // ROOT DIAGNOSTIC LAYER
+            Positioned(
+              left: 20,
+              top: 120,
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                color: Colors.red,
+                child: const Text(
+                  "ROOT GAMESCREEN ALIVE",
+                  style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
