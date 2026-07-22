@@ -1120,6 +1120,38 @@ class _GameScreenState extends State<GameScreen> {
                   ),
                 ),
 
+                // QUIT Button (Always visible on the bottom left)
+                Positioned(
+                  left: width / 2 - 150,
+                  bottom: height * 0.05,
+                  width: 60,
+                  height: 60,
+                  child: InkWell(
+                    onTap: () {
+                      _showQuitConfirmation(context);
+                    },
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        Image.asset(
+                          "assets/images/quit1.png",
+                          width: 50,
+                          height: 50,
+                          fit: BoxFit.contain,
+                          errorBuilder: (_, __, ___) => const Icon(Icons.exit_to_app, color: Colors.white, size: 30),
+                        ),
+                        const Positioned(
+                          bottom: 0,
+                          child: Text(
+                            "QUIT",
+                            style: TextStyle(fontSize: 8, color: Colors.white, fontWeight: FontWeight.bold, backgroundColor: Colors.black54),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
                 // 8. Roll Trigger Clicker (Start new piece button)
                 if (controller.players[controller.turn].numPieces < 4 && 
                     controller.board.getPosRollCount() > 0 && 
