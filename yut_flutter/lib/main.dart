@@ -46,6 +46,19 @@ class _GlobalErrorBoundaryState extends State<GlobalErrorBoundary> {
       return const SizedBox();
     };
 
+    // Catch framework, gesture and button click exceptions
+    FlutterError.onError = (FlutterErrorDetails details) {
+      FlutterError.presentError(details); // also present in developer console
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _error == null) {
+          setState(() {
+            _error = details.exception.toString();
+            _stackTrace = details.stack.toString();
+          });
+        }
+      });
+    };
+
     // Catch click/callback/async exceptions
     ui.PlatformDispatcher.instance.onError = (Object error, StackTrace stack) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
