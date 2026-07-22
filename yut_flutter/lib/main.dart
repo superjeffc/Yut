@@ -706,18 +706,14 @@ class GameScreen extends StatefulWidget {
 class _GameScreenState extends State<GameScreen> {
   Timer? _blinkTimer;
   bool _blinkState = false;
-  int _animationFrame = 0;
 
   @override
   void initState() {
     super.initState();
-    _blinkTimer = Timer.periodic(const Duration(milliseconds: 150), (timer) {
+    _blinkTimer = Timer.periodic(const Duration(milliseconds: 500), (timer) {
       if (mounted) {
         setState(() {
-          _animationFrame = (_animationFrame + 1) % 4;
-          if (_animationFrame == 0) {
-            _blinkState = !_blinkState;
-          }
+          _blinkState = !_blinkState;
         });
       }
     });
@@ -934,10 +930,6 @@ class _GameScreenState extends State<GameScreen> {
                                         !controller.isRollInProgress &&
                                         !controller.isMoveInProgress;
 
-                    String imagePath = isSelectable
-                        ? shop.getJumpFrames(animal, piece.value)[_animationFrame]
-                        : shop.getImagePath(animal, piece.value);
-
                     return AnimatedPositioned(
                       key: ValueKey("piece_${pIdx}_$pieceIdx"),
                       duration: const Duration(milliseconds: 180),
@@ -957,9 +949,11 @@ class _GameScreenState extends State<GameScreen> {
                         child: Stack(
                           alignment: Alignment.center,
                           children: [
-                            Image.asset(
-                              imagePath,
-                              fit: BoxFit.contain,
+                            AnimatedPiece(
+                              animal: animal,
+                              stackValue: piece.value,
+                              isSelectable: isSelectable,
+                              size: tileSize - 4,
                             ),
                             if (piece.value > 1)
                               Positioned(
@@ -1065,7 +1059,12 @@ class _GameScreenState extends State<GameScreen> {
                       child: Stack(
                         alignment: Alignment.center,
                         children: [
-                          Image.asset(shop.getJumpFrames(selectedAvatars[controller.turn], 1)[_animationFrame]),
+                          AnimatedPiece(
+                            animal: selectedAvatars[controller.turn],
+                            stackValue: 1,
+                            isSelectable: true,
+                            size: tileSize,
+                          ),
                           const Positioned(
                             bottom: 2,
                             child: Text(
@@ -1302,6 +1301,94 @@ class _SticksRollOverlayState extends State<SticksRollOverlay> {
           ],
         ),
       ),
+    );
+  }
+}
+
+// ============================================================================
+// SELF-CONTAINED ANIMATED ANIMAL PIECE
+// ============================================================================
+class AnimatedPiece extends StatefulWidget {
+  final String animal;
+  final int stackValue;
+  final bool isSelectable;
+  final double size;
+
+  const AnimatedPiece({
+    super.key,
+    required this.animal,
+    required this.stackValue,
+    required this.isSelectable,
+    required this.size,
+  });
+
+  @override
+  State<AnimatedPiece> createState() => _AnimatedPieceState();
+}
+
+class _AnimatedPieceState extends State<AnimatedPiece> {
+  Timer? _timer;
+  int _frame = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.isSelectable) {
+      _startAnimation();
+    }
+  }
+
+  @override
+  void didUpdateWidget(AnimatedPiece oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isSelectable != oldWidget.isSelectable) {
+      if (widget.isSelectable) {
+        _startAnimation();
+      } else {
+        _stopAnimation();
+      }
+    }
+  }
+
+  void _startAnimation() {
+    _timer?.cancel();
+    _timer = Timer.periodic(const Duration(milliseconds: 180), (timer) {
+      if (mounted) {
+        setState(() {
+          _frame = (_frame + 1) % 4;
+        });
+      }
+    });
+  }
+
+  void _stopAnimation() {
+    _timer?.cancel();
+    _timer = null;
+    if (mounted) {
+      setState(() {
+        _frame = 0;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final shop = Shop.instance;
+    String imagePath = widget.isSelectable
+        ? shop.getJumpFrames(widget.animal, widget.stackValue)[_frame]
+        : shop.getImagePath(widget.animal, widget.stackValue);
+
+    return Image.asset(
+      imagePath,
+      width: widget.size,
+      height: widget.size,
+      fit: BoxFit.contain,
     );
   }
 }
