@@ -1007,32 +1007,11 @@ class _GameScreenState extends State<GameScreen> {
                             controller.selectPiece(pieceIdx);
                           }
                         },
-                        child: Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            AnimatedPiece(
-                              animal: animal,
-                              stackValue: piece.value,
-                              isSelectable: isSelectable,
-                              size: tileSize - 4,
-                            ),
-                            if (piece.value > 1)
-                              Positioned(
-                                right: 2,
-                                bottom: 2,
-                                child: Container(
-                                  padding: const EdgeInsets.all(4),
-                                  decoration: const BoxDecoration(
-                                    color: Colors.red,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: Text(
-                                    "x${piece.value}",
-                                    style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
-                                  ),
-                                ),
-                              ),
-                          ],
+                        child: AnimatedPiece(
+                          animal: animal,
+                          stackValue: piece.value,
+                          isSelectable: isSelectable,
+                          size: tileSize - 4,
                         ),
                       ),
                     );
@@ -1064,12 +1043,12 @@ class _GameScreenState extends State<GameScreen> {
                               Image.asset(shop.getIconImagePath(selectedAvatars[0]), width: 38),
                               const SizedBox(width: 8),
                               const Text("Player 1", style: TextStyle(fontWeight: FontWeight.bold)),
-                              const Spacer(),
+                              const SizedBox(width: 8),
                               // Completed medals
                               ...List.generate(controller.players[0].score, (_) => const Icon(Icons.star, color: Colors.amber, size: 16)),
                               // Pieces off the board
                               ...List.generate(
-                                controller.players[0].pieces.where((p) => p.location == -1).length,
+                                4 - controller.players[0].numPieces,
                                 (_) => Padding(
                                   padding: const EdgeInsets.symmetric(horizontal: 2),
                                   child: Image.asset(
@@ -1079,6 +1058,7 @@ class _GameScreenState extends State<GameScreen> {
                                   ),
                                 ),
                               ),
+                              const Spacer(),
                             ],
                           ),
                         ),
@@ -1104,9 +1084,10 @@ class _GameScreenState extends State<GameScreen> {
                                 child: Row(
                                   mainAxisAlignment: MainAxisAlignment.end,
                                   children: [
+                                    const Spacer(),
                                     // Pieces off the board
                                     ...List.generate(
-                                      controller.players[1].pieces.where((p) => p.location == -1).length,
+                                      4 - controller.players[1].numPieces,
                                       (_) => Padding(
                                         padding: const EdgeInsets.symmetric(horizontal: 2),
                                         child: Image.asset(
@@ -1117,7 +1098,7 @@ class _GameScreenState extends State<GameScreen> {
                                       ),
                                     ),
                                     ...List.generate(controller.players[1].score, (_) => const Icon(Icons.star, color: Colors.amber, size: 16)),
-                                    const Spacer(),
+                                    const SizedBox(width: 8),
                                     Text(controller.isComputerPlaying ? "Computer" : "Player 2", style: const TextStyle(fontWeight: FontWeight.bold)),
                                     const SizedBox(width: 8),
                                     Image.asset(shop.getIconImagePath(selectedAvatars[1]), width: 38),
@@ -1158,7 +1139,7 @@ class _GameScreenState extends State<GameScreen> {
                           const Positioned(
                             bottom: 0,
                             child: Text(
-                              "START",
+                              "Press me!",
                               style: TextStyle(fontSize: 8, color: Colors.white, fontWeight: FontWeight.bold, backgroundColor: Colors.black54),
                             ),
                           ),
@@ -1204,13 +1185,13 @@ class _GameScreenState extends State<GameScreen> {
                     children: [
                       Text(
                         controller.statusText,
-                        style: const TextStyle(fontSize: 20, color: Colors.white, fontWeight: FontWeight.bold),
+                        style: const TextStyle(fontSize: 20, color: Color(0xFF2C3E50), fontWeight: FontWeight.bold),
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 4),
                       Text(
                         controller.tipsText,
-                        style: TextStyle(fontSize: 15, color: Colors.cyan[200]),
+                        style: const TextStyle(fontSize: 15, color: Color(0xFF7F8C8D), fontWeight: FontWeight.w600),
                         textAlign: TextAlign.center,
                       ),
                     ],
