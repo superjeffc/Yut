@@ -797,8 +797,11 @@ class _GameScreenState extends State<GameScreen> {
       },
       child: Scaffold(
         backgroundColor: const Color(0xFF1E262C),
-        body: LayoutBuilder(
-          builder: (context, constraints) {
+        body: Stack(
+          children: [
+            Positioned.fill(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
             double width = constraints.maxWidth;
             double height = constraints.maxHeight;
 
@@ -1208,7 +1211,10 @@ class _GameScreenState extends State<GameScreen> {
                   ),
               ],
             );
-          },
+                },
+              ),
+            ),
+          ],
         ),
       ),
     );
