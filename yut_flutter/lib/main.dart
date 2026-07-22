@@ -561,7 +561,7 @@ class _TitleScreenState extends State<TitleScreen> with SingleTickerProviderStat
               child: ListView(
                 padding: const EdgeInsets.only(right: 8),
                 children: [
-                  Image.asset("assets/images/banner.png", errorBuilder: (_, __, ___) => const SizedBox()),
+                  Image.asset("assets/images/banner.png", height: 100, fit: BoxFit.contain, errorBuilder: (_, __, ___) => const SizedBox()),
                   const SizedBox(height: 16),
                   
                   // Section 1
@@ -868,9 +868,16 @@ class _GameScreenState extends State<GameScreen> {
             return Stack(
               children: [
                 Positioned.fill(
-                  child: Image.asset(
-                    "assets/images/board_clear.png",
-                    fit: BoxFit.cover,
+                  child: GestureDetector(
+                    onTap: () {
+                      if (controller.selectedPieceIndex != -1) {
+                        controller.cancelSelection();
+                      }
+                    },
+                    child: Image.asset(
+                      "assets/images/board_clear.png",
+                      fit: BoxFit.cover,
+                    ),
                   ),
                 ),
                 // 1. Board Lines (Background layer)
@@ -958,10 +965,10 @@ class _GameScreenState extends State<GameScreen> {
                 // 5. Finished Overlay Trigger (Double finish box)
                 if (controller.highlightedTiles.contains(32) && offsets.containsKey(0))
                   Positioned(
-                    left: width - width / 2.5 - 12,
-                    top: height * 0.72,
-                    width: width / 2.5,
-                    height: height / 11.0,
+                    left: offsets[0]!.dx - tileSize * 0.8,
+                    top: offsets[0]!.dy + tileSize + 8,
+                    width: tileSize * 2,
+                    height: tileSize,
                     child: InkWell(
                       onTap: () => controller.makeMove(32),
                       child: Image.asset(
