@@ -813,19 +813,11 @@ class _GameScreenState extends State<GameScreen> {
             final offsets = _calculateTileOffsets(width, height);
             final selectedAvatars = shop.getSelectedAnimals();
 
-            final hour = DateTime.now().hour;
-            String bgAsset = "assets/images/backgroundnoon.png";
-            if (hour < 5 || hour >= 21) {
-              bgAsset = "assets/images/backgroundnight.png";
-            } else if ((hour >= 5 && hour < 9) || (hour >= 18 && hour < 21)) {
-              bgAsset = "assets/images/backgrounddawn.png";
-            }
-
             return Stack(
               children: [
                 Positioned.fill(
                   child: Image.asset(
-                    bgAsset,
+                    "assets/images/board_clear.png",
                     fit: BoxFit.cover,
                   ),
                 ),
