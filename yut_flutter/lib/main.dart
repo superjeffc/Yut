@@ -934,6 +934,11 @@ class _GameScreenState extends State<GameScreen> {
 
             final offsets = _calculateTileOffsets(width, height);
             final selectedAvatars = shop.getSelectedAnimals();
+            bool isRollButtonVisible = (controller.board.rollEmpty() || controller.tipsText == "Roll again!") &&
+                                       !(controller.turn == 1 && controller.isComputerPlaying) &&
+                                       !controller.isRollInProgress &&
+                                       !controller.isMoveInProgress &&
+                                       !controller.isGameOver;
 
             return Stack(
               children: [
@@ -1066,7 +1071,8 @@ class _GameScreenState extends State<GameScreen> {
                                         !controller.isGameOver &&
                                         controller.board.getPosRollCount() > 0 &&
                                         !controller.isRollInProgress &&
-                                        !controller.isMoveInProgress;
+                                        !controller.isMoveInProgress &&
+                                        !isRollButtonVisible;
 
                     return AnimatedPositioned(
                       key: ValueKey("piece_${pIdx}_$pieceIdx"),
@@ -1077,6 +1083,7 @@ class _GameScreenState extends State<GameScreen> {
                       height: tileSize - 4,
                       child: GestureDetector(
                         onTap: () {
+                          if (isRollButtonVisible) return;
                           if (controller.highlightedTiles.contains(piece.location)) {
                             // Execute Move/Stack/Capture!
                             controller.makeMove(piece.location);
@@ -1193,31 +1200,17 @@ class _GameScreenState extends State<GameScreen> {
                 // QUIT Button (Middle left of the screen)
                 Positioned(
                   left: 12,
-                  top: height / 2 - 30,
-                  width: 60,
-                  height: 60,
+                  top: height / 2 - 36,
+                  width: 72,
+                  height: 72,
                   child: InkWell(
                     onTap: () {
                       _showQuitConfirmation(context);
                     },
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        Image.asset(
-                          "assets/images/quit1.png",
-                          width: 50,
-                          height: 50,
-                          fit: BoxFit.contain,
-                          errorBuilder: (_, __, ___) => const Icon(Icons.exit_to_app, color: Colors.white, size: 30),
-                        ),
-                        const Positioned(
-                          bottom: 0,
-                          child: Text(
-                            "QUIT",
-                            style: TextStyle(fontSize: 8, color: Colors.white, fontWeight: FontWeight.bold, backgroundColor: Colors.black54),
-                          ),
-                        ),
-                      ],
+                    child: Image.asset(
+                      "assets/images/quit1.png",
+                      fit: BoxFit.contain,
+                      errorBuilder: (_, __, ___) => const Icon(Icons.exit_to_app, color: Colors.white, size: 36),
                     ),
                   ),
                 ),
@@ -1226,7 +1219,9 @@ class _GameScreenState extends State<GameScreen> {
                 if (controller.players[controller.turn].numPieces < 4 && 
                     controller.board.getPosRollCount() > 0 && 
                     !controller.board.rollEmpty() &&
-                    !(controller.turn == 1 && controller.isComputerPlaying))
+                    !(controller.turn == 1 && controller.isComputerPlaying) &&
+                    !controller.isMoveInProgress &&
+                    !isRollButtonVisible)
                   Positioned(
                     left: width - 76,
                     bottom: height * 0.03,
