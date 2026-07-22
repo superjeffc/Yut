@@ -1055,7 +1055,7 @@ class _GameScreenState extends State<GameScreen> {
                     !(controller.turn == 1 && controller.isComputerPlaying))
                   Positioned(
                     left: width / 2 - width / 10,
-                    top: height * 0.72,
+                    bottom: height * 0.31,
                     width: width / 5,
                     height: height / 11.0,
                     child: InkWell(
