@@ -43,6 +43,23 @@
   -->
   <script>
     window.flutterWebRenderer = "html";
+
+    var bgMusic = null;
+    function playBackgroundMusic() {
+      if (!bgMusic) {
+        bgMusic = new Audio('assets/audio/song.mp3');
+        bgMusic.loop = true;
+        bgMusic.volume = 0.3;
+      }
+      bgMusic.play().catch(function(error) {
+        console.log("Audio autoplay blocked by browser policy. Will retry on next interaction.");
+      });
+    }
+    function pauseBackgroundMusic() {
+      if (bgMusic) {
+        bgMusic.pause();
+      }
+    }
   </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>

@@ -190,4 +190,22 @@ class Shop {
       playerAnimals = "${selected[0]} $animal";
     }
   }
+
+  bool getSoundEnabled() {
+    if (_prefs != null) {
+      try {
+        return _prefs!.getBool("sound") ?? true;
+      } catch (_) {}
+    }
+    return _fallbackStorage["sound"] as bool? ?? true;
+  }
+
+  void setSoundEnabled(bool enabled) {
+    _fallbackStorage["sound"] = enabled;
+    if (_prefs != null) {
+      try {
+        _prefs!.setBool("sound", enabled);
+      } catch (_) {}
+    }
+  }
 }
