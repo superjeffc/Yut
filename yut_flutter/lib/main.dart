@@ -1018,25 +1018,34 @@ class _GameScreenState extends State<GameScreen> {
                       // P2 / Computer Bar (Right)
                       Opacity(
                         opacity: controller.turn == 1 ? 1.0 : 0.45,
-                        child: Container(
+                        child: SizedBox(
                           width: width / 2.05,
-                          padding: const EdgeInsets.symmetric(horizontal: 10),
-                          decoration: const BoxDecoration(
-                            image: DecorationImage(
-                              image: AssetImage("assets/images/bar2.png"),
-                              fit: BoxFit.fill,
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
+                          child: Stack(
                             children: [
-                              // Unfinished pieces
-                              ...List.generate(4 - controller.players[1].score - controller.players[1].numPieces + controller.players[1].score, (_) => Icon(Icons.circle, color: Colors.orange.withOpacity(0.5), size: 8)),
-                              ...List.generate(controller.players[1].score, (_) => const Icon(Icons.star, color: Colors.amber, size: 16)),
-                              const Spacer(),
-                              Text(controller.isComputerPlaying ? "Computer" : "Player 2", style: const TextStyle(fontWeight: FontWeight.bold)),
-                              const SizedBox(width: 8),
-                              Image.asset(shop.getIconImagePath(selectedAvatars[1]), width: 38),
+                              Positioned.fill(
+                                child: Transform.flip(
+                                  flipX: true,
+                                  child: Image.asset(
+                                    "assets/images/bar2.png",
+                                    fit: BoxFit.fill,
+                                  ),
+                                ),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 10),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.end,
+                                  children: [
+                                    // Unfinished pieces
+                                    ...List.generate(4 - controller.players[1].score - controller.players[1].numPieces + controller.players[1].score, (_) => Icon(Icons.circle, color: Colors.orange.withOpacity(0.5), size: 8)),
+                                    ...List.generate(controller.players[1].score, (_) => const Icon(Icons.star, color: Colors.amber, size: 16)),
+                                    const Spacer(),
+                                    Text(controller.isComputerPlaying ? "Computer" : "Player 2", style: const TextStyle(fontWeight: FontWeight.bold)),
+                                    const SizedBox(width: 8),
+                                    Image.asset(shop.getIconImagePath(selectedAvatars[1]), width: 38),
+                                  ],
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -1051,10 +1060,10 @@ class _GameScreenState extends State<GameScreen> {
                     !controller.board.rollEmpty() &&
                     !(controller.turn == 1 && controller.isComputerPlaying))
                   Positioned(
-                    left: width / 2 - width / 10,
-                    bottom: height * 0.31,
-                    width: width / 5,
-                    height: height / 11.0,
+                    left: width / 2 + 90,
+                    bottom: height * 0.05,
+                    width: 60,
+                    height: 60,
                     child: InkWell(
                       onTap: () {
                         controller.selectPiece(-1);
@@ -1066,13 +1075,13 @@ class _GameScreenState extends State<GameScreen> {
                             animal: selectedAvatars[controller.turn],
                             stackValue: 1,
                             isSelectable: true,
-                            size: tileSize,
+                            size: 50,
                           ),
                           const Positioned(
-                            bottom: 2,
+                            bottom: 0,
                             child: Text(
-                              "START PIECE",
-                              style: TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.bold, backgroundColor: Colors.black54),
+                              "START",
+                              style: TextStyle(fontSize: 8, color: Colors.white, fontWeight: FontWeight.bold, backgroundColor: Colors.black54),
                             ),
                           ),
                         ],
