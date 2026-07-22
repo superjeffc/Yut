@@ -113,7 +113,16 @@ class Shop {
   }
 
   List<String> getSelectedAnimals() {
-    return playerAnimals.split(RegExp(r'\s+'));
+    var list = playerAnimals.trim().split(RegExp(r'\s+'));
+    if (list.length < 2) {
+      if (list.isEmpty || list[0].isEmpty) {
+        list = ["Seal", "Penguin"];
+      } else {
+        list = [list[0], list[0] == "Seal" ? "Penguin" : "Seal"];
+      }
+      playerAnimals = "${list[0]} ${list[1]}";
+    }
+    return list.take(2).toList();
   }
 
   void switchAvatars() {
