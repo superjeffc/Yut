@@ -829,17 +829,17 @@ class _GameScreenState extends State<GameScreen> {
                   ),
                 ),
                 // 1. Board Lines (Background layer)
-                if (offsets.containsKey(10))
+                if (offsets.containsKey(10) && offsets.containsKey(0) && offsets.containsKey(15))
                   Positioned(
-                    left: offsets[10]!.dx + tileSize / 2 - (boardSize - 2 * padding - tileSize + (11.0 / 500) * (boardSize - 2 * padding - tileSize)) / 2,
-                    top: offsets[10]!.dy + tileSize / 2 - (boardSize - 2 * padding - tileSize + (11.0 / 500) * (boardSize - 2 * padding - tileSize)) / 2,
-                    width: boardSize - 2 * padding - tileSize + (11.0 / 500) * (boardSize - 2 * padding - tileSize),
-                    height: boardSize - 2 * padding - tileSize + (11.0 / 500) * (boardSize - 2 * padding - tileSize),
+                    left: offsets[10]!.dx + tileSize / 2,
+                    top: offsets[10]!.dy + tileSize / 2,
+                    width: offsets[0]!.dx - offsets[10]!.dx,
+                    height: offsets[15]!.dy - offsets[10]!.dy,
                     child: Opacity(
                       opacity: 0.5,
                       child: Image.asset(
                         "assets/images/board_lines.png",
-                        fit: BoxFit.contain,
+                        fit: BoxFit.fill,
                       ),
                     ),
                   ),
@@ -927,62 +927,62 @@ class _GameScreenState extends State<GameScreen> {
                   ),
 
                 // 6. Active Player Pieces on the Board
-                ...List.generate(2, (pIdx) {
-                  final player = controller.players[pIdx];
-                  final animal = selectedAvatars[pIdx];
+                for (int pIdx = 0; pIdx < 2; pIdx++)
+                  ...List.generate(4, (pieceIdx) {
+                    final player = controller.players[pIdx];
+                    final piece = player.pieces[pieceIdx];
+                    final animal = selectedAvatars[pIdx];
 
-                  return Stack(
-                    children: List.generate(4, (pieceIdx) {
-                      final piece = player.pieces[pieceIdx];
-                      if (piece.location == -1 || piece.location == 32) return const SizedBox();
+                    if (piece.location == -1 || piece.location == 32) {
+                      return const SizedBox();
+                    }
 
-                      final offset = offsets[piece.location] ?? Offset.zero;
+                    final offset = offsets[piece.location] ?? Offset.zero;
 
-                      return AnimatedPositioned(
-                        duration: const Duration(milliseconds: 180),
-                        left: offset.dx + 2,
-                        top: offset.dy + 2,
-                        width: tileSize - 4,
-                        height: tileSize - 4,
-                        child: GestureDetector(
-                          onTap: () {
-                            if (controller.turn == pIdx) {
-                              controller.selectPiece(pieceIdx);
-                            } else if (controller.highlightedTiles.contains(piece.location)) {
-                              // Execute Capture!
-                              controller.makeMove(piece.location);
-                            }
-                          },
-                          child: Stack(
-                            alignment: Alignment.center,
-                            children: [
-                              Image.asset(
-                                shop.getImagePath(animal, piece.value),
-                                fit: BoxFit.contain,
-                              ),
-                              if (piece.value > 1)
-                                Positioned(
-                                  right: 2,
-                                  bottom: 2,
-                                  child: Container(
-                                    padding: const EdgeInsets.all(4),
-                                    decoration: const BoxDecoration(
-                                      color: Colors.red,
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: Text(
-                                      "x${piece.value}",
-                                      style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
-                                    ),
+                    return AnimatedPositioned(
+                      key: ValueKey("piece_${pIdx}_$pieceIdx"),
+                      duration: const Duration(milliseconds: 180),
+                      left: offset.dx + 2,
+                      top: offset.dy + 2,
+                      width: tileSize - 4,
+                      height: tileSize - 4,
+                      child: GestureDetector(
+                        onTap: () {
+                          if (controller.turn == pIdx) {
+                            controller.selectPiece(pieceIdx);
+                          } else if (controller.highlightedTiles.contains(piece.location)) {
+                            // Execute Capture!
+                            controller.makeMove(piece.location);
+                          }
+                        },
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            Image.asset(
+                              shop.getImagePath(animal, piece.value),
+                              fit: BoxFit.contain,
+                            ),
+                            if (piece.value > 1)
+                              Positioned(
+                                right: 2,
+                                bottom: 2,
+                                child: Container(
+                                  padding: const EdgeInsets.all(4),
+                                  decoration: const BoxDecoration(
+                                    color: Colors.red,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Text(
+                                    "x${piece.value}",
+                                    style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
                                   ),
                                 ),
-                            ],
-                          ),
+                              ),
+                          ],
                         ),
-                      );
-                    }),
-                  );
-                }),
+                      ),
+                    );
+                  }),
 
                 // 7. Dynamic Top/Bottom Player Stat Bars
                 Positioned(
