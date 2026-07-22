@@ -8,6 +8,37 @@ import 'domain/shop.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  ErrorWidget.builder = (FlutterErrorDetails details) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF1E262C),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                "YUT RUNTIME EXCEPTION",
+                style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 20),
+              ),
+              const SizedBox(height: 12),
+              SelectableText(
+                details.exception.toString(),
+                style: const TextStyle(color: Colors.yellow, fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+              const SizedBox(height: 16),
+              SelectableText(
+                details.stack.toString(),
+                style: const TextStyle(color: Colors.white70, fontSize: 11, fontFamily: 'monospace'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  };
+
   await Shop.instance.initializeShop();
   runApp(const YutApp());
 }
