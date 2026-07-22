@@ -556,33 +556,85 @@ class _TitleScreenState extends State<TitleScreen> with SingleTickerProviderStat
           title: const Text("How To Play", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           content: SizedBox(
             width: double.maxFinite,
-            height: 400,
+            height: MediaQuery.of(context).size.height * 0.7,
             child: Scrollbar(
               child: ListView(
                 padding: const EdgeInsets.only(right: 8),
                 children: [
                   Image.asset("assets/images/banner.png", errorBuilder: (_, __, ___) => const SizedBox()),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 16),
+                  
+                  // Section 1
                   const Text(
-                    "OBJECTIVE:\nThe first player to move all 4 of their pieces around the board and back home wins the game.",
+                    "OBJECTIVE\n\nThe first player to move all 4 of his or her pieces around the board wins.\n\n"
+                    "ROLL PHASE\n\nDuring your turn, you will be prompted to throw the sticks with the roll button.\n",
                     style: TextStyle(color: Colors.white, fontSize: 15, height: 1.4),
                   ),
-                  const Divider(color: Colors.grey),
+                  Image.asset("assets/images/rollbutton1.png", height: 80, fit: BoxFit.contain, errorBuilder: (_, __, ___) => const SizedBox()),
+                  const SizedBox(height: 16),
+
+                  // Section 2
                   const Text(
-                    "ROLL PHASE:\nThrow the 4 sticks using the roll button. The number of sticks facing flat-side up decides your moves:\n"
-                    "• 1 stick up: Move 1 space (Do)\n"
-                    "• 2 sticks up: Move 2 spaces (Gae)\n"
-                    "• 3 sticks up: Move 3 spaces (Geol)\n"
-                    "• 4 sticks up: Move 4 spaces (Yut) + Roll Again!\n"
-                    "• 5 sticks (all flat-side down): Move 5 spaces (Mo) + Roll Again!\n"
-                    "• 1 marked stick up: Move backward 1 space (Back-Do)",
+                    "If you roll a 4 or 5, you get to roll again. In addition, if you land on an opponent's piece, you get to roll again.\n\n"
+                    "MOVE PHASE\n\nYour possible moves are shown in the 5 circles near the bottom.\n",
                     style: TextStyle(color: Colors.white, fontSize: 15, height: 1.4),
                   ),
-                  const Divider(color: Colors.grey),
+                  Image.asset("assets/images/roll_example.png", height: 50, fit: BoxFit.contain, errorBuilder: (_, __, ___) => const SizedBox()),
+                  const SizedBox(height: 16),
+
+                  // Section 3
                   const Text(
-                    "MOVE PHASE:\nTap one of your active jumping pieces and click a highlighted yellow tile to move. Landing directly on opponent pieces captures them (sends them home and gives you an extra roll!). Landing on your own pieces stacks them so they move together.",
+                    "To move, click any one of your available pieces (the jumping pieces) and select a yellow tile, which indicates a possible location you can move to with that piece. Stack your pieces together to move faster around the board!\n",
                     style: TextStyle(color: Colors.white, fontSize: 15, height: 1.4),
                   ),
+                  Image.asset("assets/images/yellow_tile_example.png", height: 260, fit: BoxFit.contain, errorBuilder: (_, __, ___) => const SizedBox()),
+                  const SizedBox(height: 16),
+
+                  // Section 4
+                  const Text(
+                    "POSSIBLE ROLLS AND RATES\n\n"
+                    "• -1 (Back-Do): 6.25%\n"
+                    "• 1 (Do): 18.75%\n"
+                    "• 2 (Gae): 37.50%\n"
+                    "• 3 (Geol): 25.00%\n"
+                    "• 4 (Yut): 6.25%\n"
+                    "• 5 (Mo): 6.25%\n\n"
+                    "Note: These rates are averages and you may get luckier or unluckier!\n",
+                    style: TextStyle(color: Colors.white, fontSize: 15, height: 1.4),
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      Image.asset("assets/images/circleminus1.png", width: 34, height: 34, errorBuilder: (_, __, ___) => const SizedBox()),
+                      Image.asset("assets/images/circle1.png", width: 34, height: 34, errorBuilder: (_, __, ___) => const SizedBox()),
+                      Image.asset("assets/images/circle2.png", width: 34, height: 34, errorBuilder: (_, __, ___) => const SizedBox()),
+                      Image.asset("assets/images/circle3.png", width: 34, height: 34, errorBuilder: (_, __, ___) => const SizedBox()),
+                      Image.asset("assets/images/circle4.png", width: 34, height: 34, errorBuilder: (_, __, ___) => const SizedBox()),
+                      Image.asset("assets/images/circle5.png", width: 34, height: 34, errorBuilder: (_, __, ___) => const SizedBox()),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Section 5
+                  const Text(
+                    "REMAINING PIECES\n\n"
+                    "Pieces off the board that need to be completed will be shown at the top. Pieces already completed will have medals. Pieces on the board will not be shown at the top.\n",
+                    style: TextStyle(color: Colors.white, fontSize: 15, height: 1.4),
+                  ),
+                  Image.asset("assets/images/rollbar_example.png", height: 50, fit: BoxFit.contain, errorBuilder: (_, __, ___) => const SizedBox()),
+                  const SizedBox(height: 16),
+
+                  // Section 6 & 7
+                  const Text(
+                    "COINS\n\n"
+                    "Earn coins to buy new avatars!\n\n"
+                    "• Earn 1 coin for playing a two player match\n"
+                    "• Earn 1 coin for losing against a computer\n"
+                    "• Earn 3 coins for winning against a computer\n",
+                    style: TextStyle(color: Colors.white, fontSize: 15, height: 1.4),
+                  ),
+                  Image.asset("assets/images/welcome.png", height: 150, fit: BoxFit.contain, errorBuilder: (_, __, ___) => const SizedBox()),
+                  const SizedBox(height: 16),
                 ],
               ),
             ),
@@ -948,11 +1000,11 @@ class _GameScreenState extends State<GameScreen> {
                       height: tileSize - 4,
                       child: GestureDetector(
                         onTap: () {
-                          if (controller.turn == pIdx) {
-                            controller.selectPiece(pieceIdx);
-                          } else if (controller.highlightedTiles.contains(piece.location)) {
-                            // Execute Capture!
+                          if (controller.highlightedTiles.contains(piece.location)) {
+                            // Execute Move/Stack/Capture!
                             controller.makeMove(piece.location);
+                          } else if (controller.turn == pIdx) {
+                            controller.selectPiece(pieceIdx);
                           }
                         },
                         child: Stack(
