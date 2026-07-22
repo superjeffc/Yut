@@ -1,11 +1,28 @@
 import 'dart:async';
 import 'dart:math';
 import 'dart:ui' as ui;
+import 'dart:js' as js;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'domain/board.dart';
 import 'domain/game_controller.dart';
 import 'domain/shop.dart';
+
+void updateMusicPlayback() {
+  bool enabled = Shop.instance.getSoundEnabled();
+  if (kIsWeb) {
+    try {
+      if (enabled) {
+        js.context.callMethod('playBackgroundMusic');
+      } else {
+        js.context.callMethod('pauseBackgroundMusic');
+      }
+    } catch (e) {
+      print("Javascript music play error: $e");
+    }
+  }
+}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -207,8 +224,13 @@ class _TitleScreenState extends State<TitleScreen> with SingleTickerProviderStat
       bgAsset = "assets/images/backgrounddawn.png";
     }
 
-    return Scaffold(
-      body: Stack(
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onTap: () {
+        updateMusicPlayback();
+      },
+      child: Scaffold(
+        body: Stack(
         children: [
           // Background Image
           Positioned.fill(
@@ -342,6 +364,7 @@ class _TitleScreenState extends State<TitleScreen> with SingleTickerProviderStat
           ),
         ],
       ),
+    ),
     );
   }
 
@@ -654,6 +677,7 @@ class _TitleScreenState extends State<TitleScreen> with SingleTickerProviderStat
   // OPTIONS DIALOG
   // ============================================================================
   void _showOptionsDialog(BuildContext context) {
+    final shop = Shop.instance;
     showDialog(
       context: context,
       builder: (context) {
@@ -664,6 +688,22 @@ class _TitleScreenState extends State<TitleScreen> with SingleTickerProviderStat
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              StatefulBuilder(
+                builder: (context, setStateDialog) {
+                  return SwitchListTile(
+                    activeColor: Colors.cyan,
+                    title: const Text("Background Music", style: TextStyle(color: Colors.white)),
+                    value: shop.getSoundEnabled(),
+                    onChanged: (val) {
+                      setStateDialog(() {
+                        shop.setSoundEnabled(val);
+                      });
+                      updateMusicPlayback();
+                    },
+                  );
+                },
+              ),
+              const Divider(color: Colors.grey),
               ListTile(
                 leading: const Icon(Icons.share, color: Colors.cyan),
                 title: const Text("Share App", style: TextStyle(color: Colors.white)),
@@ -841,15 +881,20 @@ class _GameScreenState extends State<GameScreen> {
     final size = MediaQuery.of(context).size;
     final shop = Shop.instance;
 
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, _) {
-        if (didPop) return;
-        _showQuitConfirmation(context);
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onTap: () {
+        updateMusicPlayback();
       },
-      child: Scaffold(
-        backgroundColor: const Color(0xFF1E262C),
-        body: Stack(
+      child: PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, _) {
+          if (didPop) return;
+          _showQuitConfirmation(context);
+        },
+        child: Scaffold(
+          backgroundColor: const Color(0xFF1E262C),
+          body: Stack(
           children: [
             Positioned.fill(
               child: LayoutBuilder(
@@ -1216,11 +1261,12 @@ class _GameScreenState extends State<GameScreen> {
                 ),
 
                 // 10. Floating Game Rules and Tip Prompts
-                Positioned(
-                  left: 24,
-                  bottom: height * 0.23,
-                  width: width - 48,
-                  child: Column(
+                if (offsets.containsKey(15))
+                  Positioned(
+                    left: 24,
+                    top: offsets[15]!.dy + tileSize + 16,
+                    width: width - 48,
+                    child: Column(
                     children: [
                       Text(
                         controller.statusText,
@@ -1251,7 +1297,13 @@ class _GameScreenState extends State<GameScreen> {
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: controller.turn == 0 ? const Color(0xFF56AFC1) : const Color(0xFFE57C38),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(26),
+                          side: BorderSide(
+                            color: _blinkState ? Colors.yellow : Colors.transparent,
+                            width: 3.5,
+                          ),
+                        ),
                       ),
                       onPressed: () {
                         controller.rollSticks();
@@ -1324,6 +1376,7 @@ class _GameScreenState extends State<GameScreen> {
           ],
         ),
       ),
+    ),
     );
   }
 
