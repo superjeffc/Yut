@@ -1791,23 +1791,29 @@ class _GameScreenState extends State<GameScreen> {
                                 ),
                                 const SizedBox(height: 24),
                                 Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                                  children: [
-                                    ElevatedButton(
-                                      onPressed: () {
-                                        controller.resetGame();
-                                      },
-                                      child: const Text("PLAY AGAIN"),
-                                    ),
-                                    ElevatedButton(
-                                      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFE74C3C)),
-                                      onPressed: () {
-                                        Navigator.pop(context);
-                                      },
-                                      child: const Text("QUIT"),
-                                    ),
-                                  ],
-                                ),
+                                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                   children: [
+                                     if (!controller.isMultiplayer)
+                                       ElevatedButton(
+                                         onPressed: () {
+                                           controller.resetGame();
+                                         },
+                                         child: const Text("PLAY AGAIN"),
+                                       ),
+                                     ElevatedButton(
+                                       style: ElevatedButton.styleFrom(
+                                         backgroundColor: const Color(0xFFE74C3C),
+                                         padding: controller.isMultiplayer
+                                             ? const EdgeInsets.symmetric(horizontal: 48, vertical: 16)
+                                             : null,
+                                       ),
+                                       onPressed: () {
+                                         Navigator.pop(context);
+                                       },
+                                       child: const Text("QUIT"),
+                                     ),
+                                   ],
+                                 ),
                               ],
                             ),
                           ),
