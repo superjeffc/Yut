@@ -1720,11 +1720,7 @@ class _GameScreenState extends State<GameScreen> {
                 ),
 
                 // 11. Large Primary ROLL BUTTON
-                if ((controller.board.rollEmpty() || controller.tipsText == "Roll again!") && 
-                    !(controller.turn == 1 && controller.isComputerPlaying) && 
-                    !controller.isRollInProgress && 
-                    !controller.isMoveInProgress && 
-                    !controller.isGameOver)
+                if (isRollButtonVisible)
                   Positioned(
                     left: width / 2 - 70,
                     bottom: 56,
@@ -1743,6 +1739,7 @@ class _GameScreenState extends State<GameScreen> {
                       ),
                       onPressed: () {
                         if (controller.turn == 1 && controller.isComputerPlaying) return;
+                        if (controller.isMultiplayer && controller.turn != controller.myPlayerIndex) return;
                         controller.rollSticks();
                       },
                       child: const Text(
