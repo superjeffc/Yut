@@ -282,6 +282,8 @@ class GameController extends ChangeNotifier {
       piece.resetValue();
     }
 
+    recalculatePlayerStats();
+
     if (players[turn].hasWon()) {
       isGameOver = true;
       statusText = turn == 0 ? "Player 1 Wins!" : (isComputerPlaying ? "Computer Wins!" : "Player 2 Wins!");
@@ -308,6 +310,8 @@ class GameController extends ChangeNotifier {
           "p2Values": players[1].pieces.map((p) => p.value).toList(),
           "rollUsed": getRollName(rollUsed),
           "nextTurn": turn,
+          "isCapture": isCapture,
+          "isGameOver": true,
         });
       }
       return;
@@ -348,6 +352,7 @@ class GameController extends ChangeNotifier {
         "p2Values": players[1].pieces.map((p) => p.value).toList(),
         "rollUsed": getRollName(rollUsed),
         "nextTurn": turn,
+        "isCapture": isCapture,
       });
     }
   }
@@ -531,6 +536,16 @@ class GameController extends ChangeNotifier {
       players[1].pieces[i].addValue((p2Val[i] as int) - 1);
     }
 
+    recalculatePlayerStats();
+
+    if (players[0].hasWon()) {
+      newIsGameOver = true;
+      winnerIdx = 0;
+    } else if (players[1].hasWon()) {
+      newIsGameOver = true;
+      winnerIdx = 1;
+    }
+
     board.rollArray = List<int>.filled(5, 0);
     for (int i = 0; i < rolls.length; i++) {
       if (i < 5) {
@@ -544,16 +559,22 @@ class GameController extends ChangeNotifier {
     isGameOver = newIsGameOver;
 
     bool canRoll = state["canRoll"] ?? true;
+    bool lastActionWasCapture = state["lastActionWasCapture"] ?? false;
 
-    print("DEBUG: syncMultiplayerState turn=$turn, p1=$p1Pos, p2=$p2Pos, p1Val=$p1Val, p2Val=$p2Val, rolls=$rolls, canRoll=$canRoll");
+    print("DEBUG: syncMultiplayerState turn=$turn, p1=$p1Pos, p2=$p2Pos, p1Val=$p1Val, p2Val=$p2Val, rolls=$rolls, canRoll=$canRoll, lastActionWasCapture=$lastActionWasCapture");
 
     if (isGameOver) {
       statusText = winnerIdx == 0 ? "Player 1 Wins!" : "Player 2 Wins!";
       tipsText = "Game Over.";
     } else {
       if (board.rollEmpty()) {
-        statusText = turn == myPlayerIndex ? "Your Turn" : "Opponent's Turn";
-        tipsText = turn == myPlayerIndex ? "Roll the sticks!" : "Waiting for opponent...";
+        if (lastActionWasCapture) {
+          statusText = turn == myPlayerIndex ? "Captured Opponent's Piece!" : "Opponent Captured Your Piece!";
+          tipsText = turn == myPlayerIndex ? "Roll again!" : "Opponent is rolling again...";
+        } else {
+          statusText = turn == myPlayerIndex ? "Your Turn" : "Opponent's Turn";
+          tipsText = turn == myPlayerIndex ? "Roll the sticks!" : "Waiting for opponent...";
+        }
       } else {
         if (canRoll && turn == myPlayerIndex) {
           statusText = "Rolled ${rolls.isNotEmpty ? rolls.last : ''}!";
@@ -566,6 +587,25 @@ class GameController extends ChangeNotifier {
     }
 
     notifyListeners();
+  }
+
+  void recalculatePlayerStats() {
+    for (int p = 0; p < 2; p++) {
+      int totalEntered = 0;
+      int scoreVal = 0;
+
+      for (int i = 0; i < 4; i++) {
+        if (players[p].pieces[i].location != -1) {
+          totalEntered += players[p].pieces[i].value;
+          if (players[p].pieces[i].location == 32) {
+            scoreVal += players[p].pieces[i].value;
+          }
+        }
+      }
+
+      players[p].numPieces = totalEntered;
+      players[p].score = scoreVal;
+    }
   }
 
   void _recalculateStacks() {
@@ -594,22 +634,8 @@ class GameController extends ChangeNotifier {
           }
         }
       }
-
-      int numActive = 0;
-      for (int i = 0; i < 4; i++) {
-        if (players[p].pieces[i].location != -1 && players[p].pieces[i].location != 32) {
-          numActive += players[p].pieces[i].value;
-        }
-      }
-      players[p].numPieces = numActive;
-      
-      int score = 0;
-      for (int i = 0; i < 4; i++) {
-        if (players[p].pieces[i].location == 32) {
-          score++;
-        }
-      }
-      players[p].score = score;
     }
+
+    recalculatePlayerStats();
   }
 }
