@@ -933,6 +933,10 @@ class _GameScreenState extends State<GameScreen> {
 
             double boardSize = height * 0.58;
             if (boardSize > width) boardSize = width;
+            if (boardSize > height - 240) {
+              boardSize = height - 240;
+            }
+            if (boardSize < 200) boardSize = 200;
             double padding = boardSize / 50.0;
             double tileSize = (boardSize - padding * 2 - (boardSize / 25.0) * 5) / 6;
 
@@ -943,6 +947,12 @@ class _GameScreenState extends State<GameScreen> {
                                        !controller.isRollInProgress &&
                                        !controller.isMoveInProgress &&
                                        !controller.isGameOver;
+
+            double avatarWidth = width < 450 ? 26 : 38;
+            double textFontSize = width < 450 ? 11 : 14;
+            double starSize = width < 450 ? 12 : 16;
+            double pieceSize = width < 450 ? 12 : 18;
+            double spacing = width < 450 ? 4 : 8;
 
             return Stack(
               children: [
@@ -1062,9 +1072,27 @@ class _GameScreenState extends State<GameScreen> {
                     ),
                   ),
 
-                // 6. Active Player Pieces on the Board
-                for (int pIdx = 0; pIdx < 2; pIdx++)
-                  ...List.generate(4, (pieceIdx) {
+                // 6. Active Player Pieces on the Board (sorted to draw active/moving piece on top)
+                ...() {
+                  final List<Map<String, int>> renderList = [];
+                  for (int pIdx = 0; pIdx < 2; pIdx++) {
+                    for (int pieceIdx = 0; pieceIdx < 4; pieceIdx++) {
+                      renderList.add({'pIdx': pIdx, 'pieceIdx': pieceIdx});
+                    }
+                  }
+                  renderList.sort((a, b) {
+                    bool aActive = (a['pIdx'] == controller.animatingPlayerIndex && a['pieceIdx'] == controller.animatingPieceIndex) ||
+                                   (a['pIdx'] == controller.turn && a['pieceIdx'] == controller.selectedPieceIndex);
+                    bool bActive = (b['pIdx'] == controller.animatingPlayerIndex && b['pieceIdx'] == controller.animatingPieceIndex) ||
+                                   (b['pIdx'] == controller.turn && b['pieceIdx'] == controller.selectedPieceIndex);
+                    if (aActive && !bActive) return 1;
+                    if (!aActive && bActive) return -1;
+                    return 0;
+                  });
+
+                  return renderList.map((entry) {
+                    final pIdx = entry['pIdx']!;
+                    final pieceIdx = entry['pieceIdx']!;
                     final player = controller.players[pIdx];
                     final piece = player.pieces[pieceIdx];
                     final animal = selectedAvatars[pIdx];
@@ -1075,7 +1103,6 @@ class _GameScreenState extends State<GameScreen> {
 
                     final offset = offsets[piece.location] ?? Offset.zero;
 
-                    // Determine if this piece should be jumping (is selectable)
                     bool isSelectable = controller.turn == pIdx &&
                                         !controller.isGameOver &&
                                         controller.board.getPosRollCount() > 0 &&
@@ -1095,7 +1122,6 @@ class _GameScreenState extends State<GameScreen> {
                           if (controller.turn == 1 && controller.isComputerPlaying) return;
                           if (isRollButtonVisible) return;
                           if (controller.highlightedTiles.contains(piece.location)) {
-                            // Execute Move/Stack/Capture!
                             controller.makeMove(piece.location);
                           } else if (controller.turn == pIdx) {
                             controller.selectPiece(pieceIdx);
@@ -1109,7 +1135,8 @@ class _GameScreenState extends State<GameScreen> {
                         ),
                       ),
                     );
-                  }),
+                  }).toList();
+                }(),
 
                 // 7. Dynamic Top/Bottom Player Stat Bars
                 Positioned(
@@ -1134,21 +1161,21 @@ class _GameScreenState extends State<GameScreen> {
                           ),
                           child: Row(
                             children: [
-                              Image.asset(shop.getIconImagePath(selectedAvatars[0]), width: 38),
-                              const SizedBox(width: 8),
-                              const Text("Player 1", style: TextStyle(fontWeight: FontWeight.bold)),
-                              const SizedBox(width: 8),
+                              Image.asset(shop.getIconImagePath(selectedAvatars[0]), width: avatarWidth),
+                              SizedBox(width: spacing),
+                              Text("Player 1", style: TextStyle(fontWeight: FontWeight.bold, fontSize: textFontSize)),
+                              SizedBox(width: spacing),
                               // Completed medals
-                              ...List.generate(controller.players[0].score, (_) => const Icon(Icons.star, color: Colors.amber, size: 16)),
+                              ...List.generate(controller.players[0].score, (_) => Icon(Icons.star, color: Colors.amber, size: starSize)),
                               // Pieces off the board
                               ...List.generate(
                                 4 - controller.players[0].numPieces,
                                 (_) => Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 2),
+                                  padding: const EdgeInsets.symmetric(horizontal: 1),
                                   child: Image.asset(
                                     shop.getImagePath(selectedAvatars[0], 1),
-                                    width: 18,
-                                    height: 18,
+                                    width: pieceSize,
+                                    height: pieceSize,
                                   ),
                                 ),
                               ),
@@ -1183,19 +1210,19 @@ class _GameScreenState extends State<GameScreen> {
                                     ...List.generate(
                                       4 - controller.players[1].numPieces,
                                       (_) => Padding(
-                                        padding: const EdgeInsets.symmetric(horizontal: 2),
+                                        padding: const EdgeInsets.symmetric(horizontal: 1),
                                         child: Image.asset(
                                           shop.getImagePath(selectedAvatars[1], 1),
-                                          width: 18,
-                                          height: 18,
+                                          width: pieceSize,
+                                          height: pieceSize,
                                         ),
                                       ),
                                     ),
-                                    ...List.generate(controller.players[1].score, (_) => const Icon(Icons.star, color: Colors.amber, size: 16)),
-                                    const SizedBox(width: 8),
-                                    Text(controller.isComputerPlaying ? "Computer" : "Player 2", style: const TextStyle(fontWeight: FontWeight.bold)),
-                                    const SizedBox(width: 8),
-                                    Image.asset(shop.getIconImagePath(selectedAvatars[1]), width: 38),
+                                    ...List.generate(controller.players[1].score, (_) => Icon(Icons.star, color: Colors.amber, size: starSize)),
+                                    SizedBox(width: spacing),
+                                    Text(controller.isComputerPlaying ? "Computer" : "Player 2", style: TextStyle(fontWeight: FontWeight.bold, fontSize: textFontSize)),
+                                    SizedBox(width: spacing),
+                                    Image.asset(shop.getIconImagePath(selectedAvatars[1]), width: avatarWidth),
                                   ],
                                 ),
                               ),
@@ -1207,10 +1234,10 @@ class _GameScreenState extends State<GameScreen> {
                   ),
                 ),
 
-                // QUIT Button (Middle left of the screen, back arrow icon)
+                // QUIT Button (Top left of the screen under status bar, back arrow icon)
                 Positioned(
                   left: 12,
-                  top: height / 2 - 28,
+                  top: 60,
                   width: 56,
                   height: 56,
                   child: Container(
@@ -1244,9 +1271,9 @@ class _GameScreenState extends State<GameScreen> {
                     !isRollButtonVisible)
                   Positioned(
                     left: width / 2 + 80,
-                    bottom: height * 0.12,
-                    width: 60,
-                    height: 60,
+                    bottom: 52,
+                    width: 56,
+                    height: 56,
                     child: InkWell(
                       onTap: () {
                         if (controller.turn == 1 && controller.isComputerPlaying) return;
@@ -1259,7 +1286,7 @@ class _GameScreenState extends State<GameScreen> {
                             animal: selectedAvatars[controller.turn],
                             stackValue: 1,
                             isSelectable: true,
-                            size: 50,
+                            size: 46,
                           ),
                           const Positioned(
                             bottom: 0,
@@ -1276,9 +1303,9 @@ class _GameScreenState extends State<GameScreen> {
                 // 9. Roll Slot indicators (Bottom center)
                 Positioned(
                   left: 12,
-                  bottom: height * 0.03,
+                  bottom: 8,
                   width: width - 24,
-                  height: 48,
+                  height: 40,
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: List.generate(5, (index) {
@@ -1293,8 +1320,8 @@ class _GameScreenState extends State<GameScreen> {
 
                       return Container(
                         margin: const EdgeInsets.symmetric(horizontal: 4),
-                        width: 40,
-                        height: 40,
+                        width: 36,
+                        height: 36,
                         child: Image.asset(img),
                       );
                     }),
@@ -1304,7 +1331,7 @@ class _GameScreenState extends State<GameScreen> {
                 // 10. Floating Game Rules and Tip Prompts
                 Positioned(
                   left: 24,
-                  bottom: height * 0.23,
+                  bottom: 114,
                   width: width - 48,
                   child: Column(
                     children: [
@@ -1331,9 +1358,9 @@ class _GameScreenState extends State<GameScreen> {
                     !controller.isGameOver)
                   Positioned(
                     left: width / 2 - 70,
-                    bottom: height * 0.12,
+                    bottom: 56,
                     width: 140,
-                    height: 52,
+                    height: 48,
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: controller.turn == 0 ? const Color(0xFF56AFC1) : const Color(0xFFE57C38),
