@@ -957,8 +957,8 @@ class _TitleScreenState extends State<TitleScreen> with SingleTickerProviderStat
                         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       ),
-                      icon: Image.network(
-                        "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/24px-Google_%22G%22_logo.svg.png",
+                      icon: Image.asset(
+                        "assets/images/google_logo.png",
                         width: 20,
                         height: 20,
                       ),
