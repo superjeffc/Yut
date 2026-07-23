@@ -799,14 +799,15 @@ class _TitleScreenState extends State<TitleScreen> with SingleTickerProviderStat
     showDialog(
       context: context,
       builder: (context) {
+        bool isLoading = false;
+        bool isCheckingConfig = true;
+        String googleClientId = "";
+        String errorMessage = "";
+        String successMessage = "";
+
         return StatefulBuilder(
           builder: (context, setStateDialog) {
             bool isLinked = shop.getLinkedEmail() != null;
-            bool isLoading = false;
-            bool isCheckingConfig = true;
-            String googleClientId = "";
-            String errorMessage = "";
-            String successMessage = "";
 
             void checkGoogleConfig() async {
               try {
@@ -816,9 +817,11 @@ class _TitleScreenState extends State<TitleScreen> with SingleTickerProviderStat
                   googleClientId = data["clientId"] ?? "";
                 }
               } catch (_) {}
-              setStateDialog(() {
-                isCheckingConfig = false;
-              });
+              if (context.mounted) {
+                setStateDialog(() {
+                  isCheckingConfig = false;
+                });
+              }
             }
 
             if (isCheckingConfig && !isLinked) {
@@ -896,10 +899,12 @@ class _TitleScreenState extends State<TitleScreen> with SingleTickerProviderStat
                     onPressed: () async {
                       setStateDialog(() => isLoading = true);
                       await shop.syncWithCloud();
-                      setStateDialog(() {
-                        isLoading = false;
-                        successMessage = "Stats synced with Cloudflare!";
-                      });
+                      if (context.mounted) {
+                        setStateDialog(() {
+                          isLoading = false;
+                          successMessage = "Stats synced successfully!";
+                        });
+                      }
                     },
                     child: const Text("Sync Now", style: TextStyle(color: Colors.cyan)),
                   ),
@@ -924,7 +929,7 @@ class _TitleScreenState extends State<TitleScreen> with SingleTickerProviderStat
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text("Connect your Google Account to Cloudflare D1 to securely backup and sync your coins, unlocks, and win/loss stats across platforms.", style: TextStyle(color: Colors.grey, fontSize: 12), textAlign: TextAlign.center),
+                  const Text("Connect your Google Account to securely backup and sync your coins, unlocks, and win/loss stats across platforms.", style: TextStyle(color: Colors.grey, fontSize: 12), textAlign: TextAlign.center),
                   const SizedBox(height: 24),
                   if (isCheckingConfig)
                     const CircularProgressIndicator(color: Colors.cyan)
@@ -937,7 +942,7 @@ class _TitleScreenState extends State<TitleScreen> with SingleTickerProviderStat
                         border: Border.all(color: Colors.redAccent.withOpacity(0.3)),
                       ),
                       child: const Text(
-                        "Google Sign-In is not configured.\n\nPlease define GOOGLE_CLIENT_ID environment variable in your Cloudflare Pages Dashboard.",
+                        "Google Sign-In is not configured.\n\nPlease configure the Google Client ID variable on the hosting dashboard.",
                         style: TextStyle(color: Colors.redAccent, fontSize: 12),
                         textAlign: TextAlign.center,
                       ),
