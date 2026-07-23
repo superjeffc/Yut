@@ -343,7 +343,7 @@ class _TitleScreenState extends State<TitleScreen> with SingleTickerProviderStat
                               right: _isMenuShifted ? 0 : -500,
                               child: Column(
                                 children: [
-                                  _menuButton("VS COMPUTER", () {
+                                  _menuButton("1 PLAYER", () {
                                     controller.isMultiplayer = false;
                                     controller.isComputerPlaying = true;
                                     controller.resetGame();
@@ -353,7 +353,7 @@ class _TitleScreenState extends State<TitleScreen> with SingleTickerProviderStat
                                     );
                                   }),
                                   const SizedBox(height: 16),
-                                  _menuButton("LOCAL 2 PLAYERS", () {
+                                  _menuButton("2 PLAYERS", () {
                                     controller.isMultiplayer = false;
                                     controller.isComputerPlaying = false;
                                     controller.resetGame();
