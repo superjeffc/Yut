@@ -61,7 +61,7 @@ export async function onRequest(context) {
       const payload = await verifyRes.json();
       const googleId = payload.sub;
       const email = payload.email;
-      const name = payload.name || "";
+      const name = payload.given_name || (payload.name ? payload.name.split(" ")[0] : "Player");
 
       // Check if user exists in D1 SQL
       let user = await db.prepare("SELECT * FROM users WHERE google_id = ?").bind(googleId).first();

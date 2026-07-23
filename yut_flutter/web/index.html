@@ -108,7 +108,7 @@
               onSuccess(JSON.stringify({
                 googleId: payload.sub,
                 email: payload.email,
-                name: payload.name,
+                name: payload.given_name || (payload.name ? payload.name.split(" ")[0] : "Player"),
                 token: jwt
               }));
             }
