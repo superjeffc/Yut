@@ -1308,6 +1308,8 @@ class _GameScreenState extends State<GameScreen> {
                                        !controller.isMoveInProgress &&
                                        !controller.isGameOver;
 
+            print("DEBUG: isRollButtonVisible=$isRollButtonVisible, rollEmpty=${controller.board.rollEmpty()}, tipsText=${controller.tipsText}, turn=${controller.turn}, myPlayerIndex=${controller.myPlayerIndex}, isMultiplayer=${controller.isMultiplayer}");
+
             double avatarWidth = width < 450 ? 26 : 38;
             double textFontSize = width < 450 ? 11 : 14;
             double starSize = width < 450 ? 12 : 16;
@@ -1400,6 +1402,7 @@ class _GameScreenState extends State<GameScreen> {
                       onTap: () {
                         if (controller.turn == 1 && controller.isComputerPlaying) return;
                         if (isHighlighted) {
+                          print("DEBUG: makeMove called on tile $tileIdx");
                           controller.makeMove(tileIdx);
                         } else {
                           controller.cancelSelection();
@@ -1423,6 +1426,7 @@ class _GameScreenState extends State<GameScreen> {
                     child: InkWell(
                       onTap: () {
                         if (controller.turn == 1 && controller.isComputerPlaying) return;
+                        print("DEBUG: makeMove called on tile 32 (Finish)");
                         controller.makeMove(32);
                       },
                       child: Image.asset(
@@ -1484,6 +1488,7 @@ class _GameScreenState extends State<GameScreen> {
                           if (controller.isMultiplayer && controller.turn != controller.myPlayerIndex) return;
                           if (isRollButtonVisible) return;
                           if (controller.highlightedTiles.contains(piece.location)) {
+                            print("DEBUG: makeMove called on piece at ${piece.location}");
                             controller.makeMove(piece.location);
                           } else if (controller.turn == pIdx) {
                             if (controller.selectedPieceIndex == pieceIdx) {

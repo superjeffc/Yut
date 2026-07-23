@@ -214,6 +214,7 @@ class GameController extends ChangeNotifier {
     statusText = "Moving...";
     tipsText = "";
     notifyListeners();
+    print("DEBUG: makeMove dest=$dest, turn=$turn, myPlayerIndex=$myPlayerIndex, isMultiplayer=$isMultiplayer");
 
     // Get sequential animation path
     List<String> pathChars = board.calculatePath(startLocation, dest, rollUsed);
@@ -323,6 +324,7 @@ class GameController extends ChangeNotifier {
     }
 
     if (isMultiplayer && onSendMultiplayerAction != null && wasMyTurn) {
+      print("DEBUG: sending MOVE action p1=${players[0].pieces.map((p) => p.location).toList()} p2=${players[1].pieces.map((p) => p.location).toList()}");
       onSendMultiplayerAction!({
         "type": "MOVE",
         "p1Pieces": players[0].pieces.map((p) => p.location).toList(),
@@ -518,6 +520,8 @@ class GameController extends ChangeNotifier {
     turn = newTurn;
     board.playerTurn = newTurn;
     isGameOver = newIsGameOver;
+
+    print("DEBUG: syncMultiplayerState turn=$turn, p1=$p1Pos, p2=$p2Pos, rolls=$rolls");
 
     if (isGameOver) {
       statusText = winnerIdx == 0 ? "Player 1 Wins!" : "Player 2 Wins!";
