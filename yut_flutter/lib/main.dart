@@ -1234,9 +1234,10 @@ class _GameScreenState extends State<GameScreen> {
                   ),
                 ),
 
-                // QUIT Button (Top left of the screen under status bar, back arrow icon)
-                Positioned(
-                  left: 12,
+                // QUIT Button (Top left of the screen under status bar, back arrow icon - only on desktop/tablet)
+                if (width >= 600)
+                  Positioned(
+                    left: 12,
                   top: 60,
                   width: 56,
                   height: 56,
@@ -1270,7 +1271,7 @@ class _GameScreenState extends State<GameScreen> {
                     !controller.isMoveInProgress &&
                     !isRollButtonVisible)
                   Positioned(
-                    left: width / 2 + 80,
+                    left: width / 2 - 28,
                     bottom: 52,
                     width: 56,
                     height: 56,
