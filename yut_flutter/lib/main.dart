@@ -1270,6 +1270,7 @@ class _GameScreenState extends State<GameScreen> {
       onTap: () {
         updateMusicPlayback();
         if (controller.turn == 1 && controller.isComputerPlaying) return;
+        if (controller.isMultiplayer && controller.turn != controller.myPlayerIndex) return;
         if (controller.selectedPieceIndex != null) {
           controller.cancelSelection();
         }
@@ -1322,7 +1323,8 @@ class _GameScreenState extends State<GameScreen> {
                   child: GestureDetector(
                     onTap: () {
                       if (controller.turn == 1 && controller.isComputerPlaying) return;
-                      if (controller.selectedPieceIndex != -1) {
+                      if (controller.isMultiplayer && controller.turn != controller.myPlayerIndex) return;
+                      if (controller.selectedPieceIndex != null) {
                         controller.cancelSelection();
                       }
                     },
@@ -1467,10 +1469,14 @@ class _GameScreenState extends State<GameScreen> {
 
                     final offset = offsets[piece.location] ?? Offset.zero;
 
+                    bool hasValidRollForPiece = (piece.location != -1)
+                        ? (controller.board.getNonZeroRollCount() > 0)
+                        : (controller.board.getPosRollCount() > 0);
+
                     bool isSelectable = controller.turn == pIdx &&
                                         (!controller.isMultiplayer || controller.turn == controller.myPlayerIndex) &&
                                         !controller.isGameOver &&
-                                        controller.board.getPosRollCount() > 0 &&
+                                        hasValidRollForPiece &&
                                         !controller.isRollInProgress &&
                                         !controller.isMoveInProgress &&
                                         !isRollButtonVisible;
@@ -1856,6 +1862,12 @@ class _GameScreenState extends State<GameScreen> {
 
       _gameSocket!.onMessage.listen((event) async {
         final data = jsonDecode(event.data);
+        if (data["type"] == "ping") {
+          try {
+            _gameSocket!.send(jsonEncode({"type": "pong"}));
+          } catch (_) {}
+          return;
+        }
         if (data["type"] == "init") {
           final players = data["players"] as List;
           final opponentIdx = (controller.myPlayerIndex + 1) % 2;
