@@ -21,6 +21,8 @@ class GameController extends ChangeNotifier {
   int currentRollValue = 0; // Value of last rolled sticks
   
   int? selectedPieceIndex; // Nullable, index of piece selected to move (0-3, or -1 for off-board)
+  int? animatingPieceIndex;
+  int? animatingPlayerIndex;
   List<List<int>> currentMoveSet = []; // Current destinations [[dest, rollAmount]]
   Set<int> highlightedTiles = {}; // Destination tiles to highlight
 
@@ -171,6 +173,8 @@ class GameController extends ChangeNotifier {
     if (selectedPieceIndex == null || !highlightedTiles.contains(dest)) return;
 
     int pieceIdx = selectedPieceIndex!;
+    animatingPieceIndex = pieceIdx;
+    animatingPlayerIndex = turn;
     selectedPieceIndex = null;
     highlightedTiles.clear();
 
@@ -241,6 +245,8 @@ class GameController extends ChangeNotifier {
     }
 
     isMoveInProgress = false;
+    animatingPieceIndex = null;
+    animatingPlayerIndex = null;
 
     // Check if finished
     if (dest == 32) {
@@ -415,6 +421,6 @@ class GameController extends ChangeNotifier {
     notifyListeners();
 
     await Future.delayed(const Duration(milliseconds: 1000));
-    makeMove(dest);
+    await makeMove(dest);
   }
 }
