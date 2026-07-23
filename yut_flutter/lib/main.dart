@@ -289,15 +289,18 @@ class _TitleScreenState extends State<TitleScreen> with SingleTickerProviderStat
                         children: [
                           IconButton(
                             icon: Icon(
-                              controller.soundOn ? Icons.volume_up : Icons.volume_off,
+                              Shop.instance.getSoundEnabled() ? Icons.volume_up : Icons.volume_off,
                               color: Colors.white,
                               size: 28,
                             ),
                             onPressed: () {
-                              controller.toggleSound();
+                              bool nextVal = !Shop.instance.getSoundEnabled();
+                              Shop.instance.setSoundEnabled(nextVal);
+                              updateMusicPlayback();
+                              setState(() {}); // Redraw title screen with new icon
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  content: Text(controller.soundOn ? "Sound Unmuted" : "Sound Muted"),
+                                  content: Text(nextVal ? "Sound Unmuted" : "Sound Muted"),
                                   duration: const Duration(seconds: 1),
                                 ),
                               );
@@ -361,18 +364,11 @@ class _TitleScreenState extends State<TitleScreen> with SingleTickerProviderStat
                                   }),
                                   const SizedBox(height: 16),
                                   _menuButton("ONLINE MULTIPLAYER", () {
-                                    if (Shop.instance.getLinkedEmail() == null) {
-                                      _showLinkAccountDialog(context);
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(content: Text("Please connect your Google account to play online.")),
-                                      );
-                                    } else {
-                                      showDialog(
-                                        context: context,
-                                        barrierDismissible: false,
-                                        builder: (_) => MatchmakerDialog(controller: controller),
-                                      );
-                                    }
+                                    showDialog(
+                                      context: context,
+                                      barrierDismissible: false,
+                                      builder: (_) => MatchmakerDialog(controller: controller),
+                                    );
                                   }),
                                   const SizedBox(height: 16),
                                   _menuButton("BACK", () {
