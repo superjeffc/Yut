@@ -83,40 +83,40 @@
         }, 300);
       }
     }
-    function triggerGoogleAuth(clientId) {
+    function triggerGoogleAuth(clientId, onSuccess, onError) {
       const redirectUri = window.location.origin + window.location.pathname;
       const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=id_token&scope=email%20profile&nonce=yutgame`;
       
       const popup = window.open(url, "Google Sign In", "width=500,height=600");
       
-      return new Promise((resolve, reject) => {
-        const timer = setInterval(() => {
-          try {
-            if (!popup || popup.closed) {
-              clearInterval(timer);
-              reject("Popup closed by user");
-              return;
-            }
-            
-            const href = popup.location.href;
-            if (href && href.includes("id_token=")) {
-              clearInterval(timer);
-              const params = new URLSearchParams(href.split("#")[1] || href.split("?")[1]);
-              const jwt = params.get("id_token");
-              const payload = JSON.parse(atob(jwt.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
-              popup.close();
-              resolve(JSON.stringify({
+      const timer = setInterval(() => {
+        try {
+          if (!popup || popup.closed) {
+            clearInterval(timer);
+            if (onError) onError("Popup closed by user");
+            return;
+          }
+          
+          const href = popup.location.href;
+          if (href && href.includes("id_token=")) {
+            clearInterval(timer);
+            const params = new URLSearchParams(href.split("#")[1] || href.split("?")[1]);
+            const jwt = params.get("id_token");
+            const payload = JSON.parse(atob(jwt.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+            popup.close();
+            if (onSuccess) {
+              onSuccess(JSON.stringify({
                 googleId: payload.sub,
                 email: payload.email,
                 name: payload.name,
                 token: jwt
               }));
             }
-          } catch (_) {
-            // Cross-origin access errors expected during consent page redirecting
           }
-        }, 500);
-      });
+        } catch (_) {
+          // Cross-origin access errors expected during consent page redirecting
+        }
+      }, 500);
     }
   </script>
   <script src="flutter_bootstrap.js" async></script>
