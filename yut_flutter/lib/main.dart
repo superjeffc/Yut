@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'dart:math';
 import 'dart:ui' as ui;
 import 'dart:js' as js;
-import 'dart:js_util' as js_util;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -843,8 +842,27 @@ class _TitleScreenState extends State<TitleScreen> with SingleTickerProviderStat
               });
 
               try {
-                final promise = js.context.callMethod('triggerGoogleAuth', [googleClientId]);
-                final resultStr = await js_util.promiseToFuture(promise);
+                final completer = Completer<String>();
+
+                final successCallback = js.allowInterop((String resultStr) {
+                  if (!completer.isCompleted) {
+                    completer.complete(resultStr);
+                  }
+                });
+
+                final errorCallback = js.allowInterop((String errorMsg) {
+                  if (!completer.isCompleted) {
+                    completer.completeError(errorMsg);
+                  }
+                });
+
+                js.context.callMethod('triggerGoogleAuth', [
+                  googleClientId,
+                  successCallback,
+                  errorCallback,
+                ]);
+
+                final resultStr = await completer.future;
                 final result = jsonDecode(resultStr);
 
                 final token = result["token"] ?? "";
