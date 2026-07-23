@@ -260,12 +260,14 @@ class GameController extends ChangeNotifier {
       statusText = turn == 0 ? "Player 1 Wins!" : (isComputerPlaying ? "Computer Wins!" : "Player 2 Wins!");
       awardCoins();
       
-      // Stats tracking
-      Shop.instance.incrementGames();
-      if (turn == 0) {
-        Shop.instance.incrementWins();
-      } else if (isComputerPlaying) {
-        Shop.instance.incrementLosses();
+      // Stats tracking (only recorded when playing against the computer)
+      if (isComputerPlaying) {
+        Shop.instance.incrementGames();
+        if (turn == 0) {
+          Shop.instance.incrementWins();
+        } else {
+          Shop.instance.incrementLosses();
+        }
       }
 
       notifyListeners();
