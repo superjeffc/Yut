@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:math';
 import 'dart:ui' as ui;
 import 'dart:js' as js;
+import 'dart:html' as html;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -340,6 +341,7 @@ class _TitleScreenState extends State<TitleScreen> with SingleTickerProviderStat
                               child: Column(
                                 children: [
                                   _menuButton("VS COMPUTER", () {
+                                    controller.isMultiplayer = false;
                                     controller.isComputerPlaying = true;
                                     controller.resetGame();
                                     Navigator.push(
@@ -349,12 +351,28 @@ class _TitleScreenState extends State<TitleScreen> with SingleTickerProviderStat
                                   }),
                                   const SizedBox(height: 16),
                                   _menuButton("LOCAL 2 PLAYERS", () {
+                                    controller.isMultiplayer = false;
                                     controller.isComputerPlaying = false;
                                     controller.resetGame();
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(builder: (_) => const GameScreen()),
                                     );
+                                  }),
+                                  const SizedBox(height: 16),
+                                  _menuButton("ONLINE MULTIPLAYER", () {
+                                    if (Shop.instance.getLinkedEmail() == null) {
+                                      _showLinkAccountDialog(context);
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(content: Text("Please connect your Google account to play online.")),
+                                      );
+                                    } else {
+                                      showDialog(
+                                        context: context,
+                                        barrierDismissible: false,
+                                        builder: (_) => MatchmakerDialog(controller: controller),
+                                      );
+                                    }
                                   }),
                                   const SizedBox(height: 16),
                                   _menuButton("BACK", () {
@@ -1030,6 +1048,122 @@ class Snowflake {
   Snowflake({required this.x, required this.y, required this.speed, required this.radius});
 }
 
+class MatchmakerDialog extends StatefulWidget {
+  final GameController controller;
+  const MatchmakerDialog({super.key, required this.controller});
+
+  @override
+  State<MatchmakerDialog> createState() => _MatchmakerDialogState();
+}
+
+class _MatchmakerDialogState extends State<MatchmakerDialog> {
+  html.WebSocket? _lobbySocket;
+  String _status = "Initializing matchmaking...";
+  bool _isMatched = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _startMatchmaking();
+  }
+
+  void _startMatchmaking() {
+    final shop = Shop.instance;
+    final email = Uri.encodeComponent(shop.getLinkedEmail() ?? "");
+    final name = Uri.encodeComponent(shop.getLinkedName() ?? "Player");
+    final selectedAnimals = shop.getSelectedAnimals();
+    final avatar = Uri.encodeComponent(selectedAnimals[0]);
+
+    final wsProtocol = html.window.location.protocol == "https:" ? "wss:" : "ws:";
+    final host = html.window.location.host;
+    final wsUrl = "$wsProtocol//$host/api/ws/lobby?email=$email&name=$name&avatar=$avatar";
+
+    try {
+      _lobbySocket = html.WebSocket(wsUrl);
+
+      _lobbySocket!.onMessage.listen((event) {
+        final data = jsonDecode(event.data);
+        if (data["type"] == "waiting") {
+          setState(() {
+            _status = "Searching for an opponent...";
+          });
+        } 
+        else if (data["type"] == "matched") {
+          _isMatched = true;
+          final room = data["room"];
+          final pIdx = data["playerIndex"] as int;
+          
+          widget.controller.isMultiplayer = true;
+          widget.controller.myPlayerIndex = pIdx;
+          widget.controller.multiplayerRoomId = room;
+          widget.controller.isComputerPlaying = false;
+          widget.controller.resetGame();
+
+          Navigator.pop(context); // Close matchmaker dialog
+
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const GameScreen()),
+          );
+        }
+      });
+
+      _lobbySocket!.onClose.listen((_) {
+        if (!_isMatched && mounted) {
+          setState(() {
+            _status = "Connection lost. Try again.";
+          });
+        }
+      });
+
+      _lobbySocket!.onError.listen((_) {
+        if (mounted) {
+          setState(() {
+            _status = "Failed to connect to lobby.";
+          });
+        }
+      });
+    } catch (e) {
+      setState(() {
+        _status = "Error: $e";
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _lobbySocket?.close();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: const Color(0xFF2C3E50),
+      title: const Text("Online Matchmaking", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const SizedBox(height: 16),
+          if (!_isMatched && !_status.startsWith("Failed") && !_status.startsWith("Connection"))
+            const CircularProgressIndicator(color: Colors.cyan)
+          else
+            const Icon(Icons.error_outline, color: Colors.redAccent, size: 48),
+          const SizedBox(height: 24),
+          Text(_status, style: const TextStyle(color: Colors.white70, fontSize: 14), textAlign: TextAlign.center),
+          const SizedBox(height: 16),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text("Cancel", style: TextStyle(color: Colors.white)),
+        ),
+      ],
+    );
+  }
+}
+
 // ============================================================================
 // GAME SCREEN (THE BOARD)
 // ============================================================================
@@ -1043,6 +1177,7 @@ class GameScreen extends StatefulWidget {
 class _GameScreenState extends State<GameScreen> {
   Timer? _blinkTimer;
   bool _blinkState = false;
+  html.WebSocket? _gameSocket;
 
   @override
   void initState() {
@@ -1054,11 +1189,19 @@ class _GameScreenState extends State<GameScreen> {
         });
       }
     });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final controller = Provider.of<GameController>(context, listen: false);
+      if (controller.isMultiplayer) {
+        _connectToGameRoom(controller);
+      }
+    });
   }
 
   @override
   void dispose() {
     _blinkTimer?.cancel();
+    _gameSocket?.close();
     super.dispose();
   }
   // Calculates coordinates dynamically based on display dimensions
@@ -1671,6 +1814,93 @@ class _GameScreenState extends State<GameScreen> {
       ),
     ),
     );
+  }
+
+  void _connectToGameRoom(GameController controller) {
+    final shop = Shop.instance;
+    final email = Uri.encodeComponent(shop.getLinkedEmail() ?? "anon_${Random().nextInt(10000)}");
+    final name = Uri.encodeComponent(shop.getLinkedName() ?? "Player");
+    final selectedAnimals = shop.getSelectedAnimals();
+    final avatar = Uri.encodeComponent(selectedAnimals[controller.myPlayerIndex]);
+    final room = Uri.encodeComponent(controller.multiplayerRoomId ?? "");
+
+    final wsProtocol = html.window.location.protocol == "https:" ? "wss:" : "ws:";
+    final host = html.window.location.host;
+    final wsUrl = "$wsProtocol//$host/api/ws/game?room=$room&playerIndex=${controller.myPlayerIndex}&email=$email&name=$name&avatar=$avatar";
+
+    try {
+      _gameSocket = html.WebSocket(wsUrl);
+      
+      controller.onSendMultiplayerAction = (action) {
+        if (_gameSocket != null && _gameSocket!.readyState == html.WebSocket.OPEN) {
+          _gameSocket!.send(jsonEncode(action));
+        }
+      };
+
+      _gameSocket!.onMessage.listen((event) async {
+        final data = jsonDecode(event.data);
+        if (data["type"] == "init") {
+          final players = data["players"] as List;
+          final opponentIdx = (controller.myPlayerIndex + 1) % 2;
+          final oppProfile = players[opponentIdx] as Map<String, dynamic>;
+          shop.changeAvatar(opponentIdx, oppProfile["avatar"] ?? "seal");
+          controller.syncMultiplayerState(data["state"]);
+        } 
+        else if (data["type"] == "state") {
+          final newState = data["state"];
+          final oppIdx = (controller.myPlayerIndex + 1) % 2;
+          final oldPos = List<int>.from(controller.players[oppIdx].pieces.map((p) => p.location));
+          final newPos = List<int>.from((oppIdx == 0 ? newState["p1Pieces"] : newState["p2Pieces"]).cast<int>());
+          final oldRollsLength = controller.board.rollIndex;
+          final newRolls = newState["rollsLeft"] as List;
+
+          if (controller.turn == oppIdx && newRolls.length > oldRollsLength) {
+            final newRollVal = controller.getRollValue(newRolls.last as String);
+            controller.currentRollValue = newRollVal;
+            controller.isRollInProgress = true;
+            controller.statusText = "Opponent is rolling...";
+            controller.notifyListeners();
+            
+            await Future.delayed(const Duration(milliseconds: 1200));
+            controller.board.addRoll(newRollVal);
+            controller.isRollInProgress = false;
+            controller.notifyListeners();
+          }
+
+          int changedPieceIdx = -1;
+          int targetDest = -1;
+          for (int i = 0; i < 4; i++) {
+            if (newPos[i] != oldPos[i]) {
+              changedPieceIdx = i;
+              targetDest = newPos[i];
+              break;
+            }
+          }
+
+          if (controller.turn == oppIdx && changedPieceIdx != -1) {
+            controller.selectedPieceIndex = changedPieceIdx;
+            controller.highlightedTiles = { targetDest };
+            final rollUsedName = newState["rollsLeft"].isEmpty ? "Do" : (newState["rollsLeft"].last as String);
+            final rollUsedVal = controller.getRollValue(rollUsedName);
+            controller.currentMoveSet = [[targetDest, rollUsedVal]];
+            
+            await controller.makeMove(targetDest);
+          }
+
+          controller.syncMultiplayerState(newState);
+        }
+        else if (data["type"] == "opponent_disconnected") {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("Opponent disconnected. You win by forfeit!")),
+            );
+            controller.isGameOver = true;
+            controller.statusText = "Opponent Forfeited!";
+            controller.notifyListeners();
+          }
+        }
+      });
+    } catch (_) {}
   }
 
   void _showQuitConfirmation(BuildContext context) {

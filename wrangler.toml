@@ -8,3 +8,13 @@ GOOGLE_CLIENT_ID = "223698446706-nf21ero1897j813o81db0nsmsrhavojs.apps.googleuse
 binding = "DB"
 database_name = "yut-db"
 database_id = "67419573-1364-41e6-9627-88db325d8b40"
+
+[[durable_objects.bindings]]
+name = "YUT_GAME_ROOM"
+class_name = "YutGameRoom"
+script_name = "yut-multiplayer-do"
+
+[[durable_objects.bindings]]
+name = "YUT_LOBBY"
+class_name = "YutLobby"
+script_name = "yut-multiplayer-do"
