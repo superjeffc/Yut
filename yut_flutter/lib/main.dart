@@ -768,7 +768,7 @@ class _TitleScreenState extends State<TitleScreen> with SingleTickerProviderStat
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Text(
-                            "Developer: Jeffrey Chan\n",
+                            "Developer: Jeff Chan\n",
                             style: TextStyle(color: Colors.white, height: 1.4),
                           ),
                           const SizedBox(height: 8),
