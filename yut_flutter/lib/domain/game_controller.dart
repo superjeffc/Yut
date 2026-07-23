@@ -31,6 +31,11 @@ class GameController extends ChangeNotifier {
 
   bool soundOn = true;
 
+  bool isMultiplayer = false;
+  int myPlayerIndex = 0; // 0 for Player 1, 1 for Player 2
+  String? multiplayerRoomId;
+  Function(Map<String, dynamic>)? onSendMultiplayerAction;
+
   GameController({required this.isComputerPlaying}) {
     board = Board();
     players = [Player(), Player()];
@@ -78,6 +83,13 @@ class GameController extends ChangeNotifier {
 
     board.addRoll(currentRollValue);
     isRollInProgress = false;
+
+    if (isMultiplayer && onSendMultiplayerAction != null && turn == myPlayerIndex) {
+      onSendMultiplayerAction!({
+        "type": "ROLL_RESULT",
+        "rollName": getRollName(currentRollValue),
+      });
+    }
 
     // Check roll rules
     bool canRollAgain = false;
@@ -217,6 +229,16 @@ class GameController extends ChangeNotifier {
 
     piece.location = dest;
     board.removeRoll(rollUsed);
+
+    if (isMultiplayer && onSendMultiplayerAction != null && turn == myPlayerIndex) {
+      onSendMultiplayerAction!({
+        "type": "MOVE",
+        "p1Pieces": players[0].pieces.map((p) => p.location).toList(),
+        "p2Pieces": players[1].pieces.map((p) => p.location).toList(),
+        "rollUsed": getRollName(rollUsed),
+        "nextTurn": (board.rollEmpty() || (board.hasOnlyNegativeRoll() && players[turn].hasNoPiecesOnBoard())) ? oppTurn : turn,
+      });
+    }
 
     // Check capture/stack rules
     bool isCapture = false;
@@ -433,5 +455,117 @@ class GameController extends ChangeNotifier {
 
     await Future.delayed(const Duration(milliseconds: 1000));
     await makeMove(dest);
+  }
+
+  String getRollName(int val) {
+    switch (val) {
+      case -1: return "Back-Do";
+      case 1: return "Do";
+      case 2: return "Gae";
+      case 3: return "Geol";
+      case 4: return "Yut";
+      case 5: return "Mo";
+      default: return "";
+    }
+  }
+
+  int getRollValue(String name) {
+    switch (name) {
+      case "Back-Do": return -1;
+      case "Do": return 1;
+      case "Gae": return 2;
+      case "Geol": return 3;
+      case "Yut": return 4;
+      case "Mo": return 5;
+      default: return 0;
+    }
+  }
+
+  void syncMultiplayerState(Map<String, dynamic> state) {
+    int newTurn = state["turn"] ?? 0;
+    List<dynamic> p1Pos = state["p1Pieces"] ?? [-1, -1, -1, -1];
+    List<dynamic> p2Pos = state["p2Pieces"] ?? [-1, -1, -1, -1];
+    List<dynamic> rolls = state["rollsLeft"] ?? [];
+    bool newIsGameOver = state["isGameOver"] ?? false;
+    int winnerIdx = state["winnerIndex"] ?? -1;
+
+    for (int i = 0; i < 4; i++) {
+      players[0].pieces[i].location = p1Pos[i] as int;
+      players[1].pieces[i].location = p2Pos[i] as int;
+    }
+
+    _recalculateStacks();
+
+    board.rollArray = List<int>.filled(5, 0);
+    for (int i = 0; i < rolls.length; i++) {
+      if (i < 5) {
+        board.rollArray[i] = getRollValue(rolls[i] as String);
+      }
+    }
+    board.rollIndex = rolls.length;
+    
+    turn = newTurn;
+    board.playerTurn = newTurn;
+    isGameOver = newIsGameOver;
+
+    if (isGameOver) {
+      statusText = winnerIdx == 0 ? "Player 1 Wins!" : "Player 2 Wins!";
+      tipsText = "Game Over.";
+    } else {
+      if (board.rollEmpty()) {
+        statusText = turn == myPlayerIndex ? "Your Turn" : "Opponent's Turn";
+        tipsText = turn == myPlayerIndex ? "Roll the sticks!" : "Waiting for opponent...";
+      } else {
+        statusText = turn == myPlayerIndex ? "Your Move" : "Opponent's Move";
+        tipsText = turn == myPlayerIndex ? "Select a piece to move." : "Opponent is choosing...";
+      }
+    }
+
+    notifyListeners();
+  }
+
+  void _recalculateStacks() {
+    for (int p = 0; p < 2; p++) {
+      for (int i = 0; i < 4; i++) {
+        players[p].pieces[i].resetValue();
+      }
+
+      Map<int, List<int>> locMap = {};
+      for (int i = 0; i < 4; i++) {
+        int loc = players[p].pieces[i].location;
+        if (loc != -1 && loc != 32) {
+          locMap.putIfAbsent(loc, () => []).add(i);
+        }
+      }
+
+      for (var entry in locMap.entries) {
+        var indices = entry.value;
+        if (indices.length > 1) {
+          int masterIdx = indices.first;
+          int totalVal = indices.length;
+          players[p].pieces[masterIdx].addValue(totalVal - 1);
+          for (int j = 1; j < indices.length; j++) {
+            players[p].pieces[indices[j]].location = -1;
+            players[p].pieces[indices[j]].resetValue();
+          }
+        }
+      }
+
+      int numActive = 0;
+      for (int i = 0; i < 4; i++) {
+        if (players[p].pieces[i].location != -1 && players[p].pieces[i].location != 32) {
+          numActive += players[p].pieces[i].value;
+        }
+      }
+      players[p].numPieces = numActive;
+      
+      int score = 0;
+      for (int i = 0; i < 4; i++) {
+        if (players[p].pieces[i].location == 32) {
+          score++;
+        }
+      }
+      players[p].score = score;
+    }
   }
 }
