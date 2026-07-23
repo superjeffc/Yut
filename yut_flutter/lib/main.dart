@@ -1065,8 +1065,8 @@ class _MatchmakerDialogState extends State<MatchmakerDialog> {
 
   void _startMatchmaking() {
     final shop = Shop.instance;
-    final email = Uri.encodeComponent(shop.getLinkedEmail() ?? "");
-    final name = Uri.encodeComponent(shop.getLinkedName() ?? "Player");
+    final email = Uri.encodeComponent(shop.getLinkedEmail() ?? "guest_${Random().nextInt(1000000)}");
+    final name = Uri.encodeComponent(shop.getLinkedName() ?? "Guest ${Random().nextInt(9000) + 1000}");
     final selectedAnimals = shop.getSelectedAnimals();
     final avatar = Uri.encodeComponent(selectedAnimals[0]);
 
