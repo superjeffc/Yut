@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class Shop {
@@ -206,6 +208,225 @@ class Shop {
       try {
         _prefs!.setBool("sound", enabled);
       } catch (_) {}
+    }
+  }
+
+  // Stats tracking
+  int getGames() {
+    if (_prefs != null) {
+      try {
+        return _prefs!.getInt("games") ?? 0;
+      } catch (_) {}
+    }
+    return _fallbackStorage["games"] as int? ?? 0;
+  }
+
+  void incrementGames() {
+    int current = getGames();
+    int newValue = current + 1;
+    _fallbackStorage["games"] = newValue;
+    if (_prefs != null) {
+      try {
+        _prefs!.setInt("games", newValue);
+      } catch (_) {}
+    }
+    syncWithCloud();
+  }
+
+  int getWins() {
+    if (_prefs != null) {
+      try {
+        return _prefs!.getInt("wins") ?? 0;
+      } catch (_) {}
+    }
+    return _fallbackStorage["wins"] as int? ?? 0;
+  }
+
+  void incrementWins() {
+    int current = getWins();
+    int newValue = current + 1;
+    _fallbackStorage["wins"] = newValue;
+    if (_prefs != null) {
+      try {
+        _prefs!.setInt("wins", newValue);
+      } catch (_) {}
+    }
+    syncWithCloud();
+  }
+
+  int getLosses() {
+    if (_prefs != null) {
+      try {
+        return _prefs!.getInt("losses") ?? 0;
+      } catch (_) {}
+    }
+    return _fallbackStorage["losses"] as int? ?? 0;
+  }
+
+  void incrementLosses() {
+    int current = getLosses();
+    int newValue = current + 1;
+    _fallbackStorage["losses"] = newValue;
+    if (_prefs != null) {
+      try {
+        _prefs!.setInt("losses", newValue);
+      } catch (_) {}
+    }
+    syncWithCloud();
+  }
+
+  // Account Linking
+  String? getLinkedUsername() {
+    if (_prefs != null) {
+      try {
+        return _prefs!.getString("linked_username");
+      } catch (_) {}
+    }
+    return _fallbackStorage["linked_username"] as String?;
+  }
+
+  String? getLinkedPassword() {
+    if (_prefs != null) {
+      try {
+        return _prefs!.getString("linked_password");
+      } catch (_) {}
+    }
+    return _fallbackStorage["linked_password"] as String?;
+  }
+
+  void linkAccount(String username, String password) {
+    _fallbackStorage["linked_username"] = username;
+    _fallbackStorage["linked_password"] = password;
+    if (_prefs != null) {
+      try {
+        _prefs!.setString("linked_username", username);
+        _prefs!.setString("linked_password", password);
+      } catch (_) {}
+    }
+  }
+
+  void unlinkAccount() {
+    _fallbackStorage.remove("linked_username");
+    _fallbackStorage.remove("linked_password");
+    if (_prefs != null) {
+      try {
+        _prefs!.remove("linked_username");
+        _prefs!.remove("linked_password");
+      } catch (_) {}
+    }
+  }
+
+  Future<bool> syncWithCloud() async {
+    String? username = getLinkedUsername();
+    String? password = getLinkedPassword();
+    if (username == null || password == null) return false;
+
+    try {
+      final response = await http.post(
+        Uri.parse("/api/auth?action=sync"),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "username": username,
+          "password": password,
+          "coins": getCoins(),
+          "unlockedAnimals": getUnlockedAvatars().join(" "),
+          "games": getGames(),
+          "wins": getWins(),
+          "losses": getLosses(),
+        }),
+      ).timeout(const Duration(seconds: 5));
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data["success"] == true) {
+          int remoteCoins = data["coins"] ?? 0;
+          String remoteAnimalsStr = data["unlockedAnimals"] ?? "Seal Penguin";
+          int remoteGames = data["games"] ?? 0;
+          int remoteWins = data["wins"] ?? 0;
+          int remoteLosses = data["losses"] ?? 0;
+
+          _fallbackStorage["coins"] = remoteCoins;
+          if (_prefs != null) _prefs!.setInt("coins", remoteCoins);
+
+          _fallbackStorage["games"] = remoteGames;
+          _fallbackStorage["wins"] = remoteWins;
+          _fallbackStorage["losses"] = remoteLosses;
+          if (_prefs != null) {
+            _prefs!.setInt("games", remoteGames);
+            _prefs!.setInt("wins", remoteWins);
+            _prefs!.setInt("losses", remoteLosses);
+          }
+
+          var remoteAnimalsList = remoteAnimalsStr.split(" ").where((s) => s.isNotEmpty).toList();
+          for (var animal in remoteAnimalsList) {
+            if (costs.containsKey(animal)) {
+              _fallbackStorage[animal] = 1;
+              if (_prefs != null) _prefs!.setInt(animal, 1);
+            }
+          }
+
+          return true;
+        }
+      }
+    } catch (e) {
+      print("Sync error: $e");
+    }
+    return false;
+  }
+
+  Future<bool> loginAndSync(String username, String password, bool isRegister) async {
+    try {
+      final response = await http.post(
+        Uri.parse("/api/auth?action=${isRegister ? 'register' : 'login'}"),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "username": username,
+          "password": password,
+          "coins": getCoins(),
+          "unlockedAnimals": getUnlockedAvatars().join(" "),
+          "games": getGames(),
+          "wins": getWins(),
+          "losses": getLosses(),
+        }),
+      ).timeout(const Duration(seconds: 5));
+
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 200 && data["success"] == true) {
+        linkAccount(username, password);
+        if (isRegister) {
+          await syncWithCloud();
+        } else {
+          int remoteCoins = data["coins"] ?? 0;
+          String remoteAnimalsStr = data["unlockedAnimals"] ?? "Seal Penguin";
+          int remoteGames = data["games"] ?? 0;
+          int remoteWins = data["wins"] ?? 0;
+          int remoteLosses = data["losses"] ?? 0;
+
+          _fallbackStorage["coins"] = remoteCoins;
+          if (_prefs != null) _prefs!.setInt("coins", remoteCoins);
+          _fallbackStorage["games"] = remoteGames;
+          _fallbackStorage["wins"] = remoteWins;
+          _fallbackStorage["losses"] = remoteLosses;
+          if (_prefs != null) {
+            _prefs!.setInt("games", remoteGames);
+            _prefs!.setInt("wins", remoteWins);
+            _prefs!.setInt("losses", remoteLosses);
+          }
+
+          var remoteAnimalsList = remoteAnimalsStr.split(" ").where((s) => s.isNotEmpty).toList();
+          for (var animal in remoteAnimalsList) {
+            if (costs.containsKey(animal)) {
+              _fallbackStorage[animal] = 1;
+              if (_prefs != null) _prefs!.setInt(animal, 1);
+            }
+          }
+        }
+        return true;
+      } else {
+        throw Exception(data["error"] ?? "Authentication failed");
+      }
+    } catch (e) {
+      rethrow;
     }
   }
 }

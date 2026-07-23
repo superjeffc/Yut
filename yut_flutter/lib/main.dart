@@ -715,6 +715,15 @@ class _TitleScreenState extends State<TitleScreen> with SingleTickerProviderStat
               ),
               const Divider(color: Colors.grey),
               ListTile(
+                leading: const Icon(Icons.cloud_sync, color: Colors.cyan),
+                title: Text(shop.getLinkedUsername() != null ? "Linked: ${shop.getLinkedUsername()}" : "Link Account", style: const TextStyle(color: Colors.white)),
+                onTap: () {
+                  Navigator.pop(context);
+                  _showLinkAccountDialog(context);
+                },
+              ),
+              const Divider(color: Colors.grey),
+              ListTile(
                 leading: const Icon(Icons.share, color: Colors.cyan),
                 title: const Text("Share App", style: TextStyle(color: Colors.white)),
                 onTap: () {
@@ -739,7 +748,7 @@ class _TitleScreenState extends State<TitleScreen> with SingleTickerProviderStat
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Text(
-                            "Yut Game - Ported to Flutter\n\nDeveloper: Jeffrey Chan\n",
+                            "Developer: Jeffrey Chan\n",
                             style: TextStyle(color: Colors.white, height: 1.4),
                           ),
                           const SizedBox(height: 8),
@@ -747,12 +756,12 @@ class _TitleScreenState extends State<TitleScreen> with SingleTickerProviderStat
                             onTap: () {
                               if (kIsWeb) {
                                 try {
-                                  js.context.callMethod('open', ['https://github.com/superjeffc']);
+                                  js.context.callMethod('open', ['https://superjeffc.com/']);
                                 } catch (_) {}
                               }
                             },
                             child: const Text(
-                              "Website: https://github.com/superjeffc",
+                              "Website: https://superjeffc.com/",
                               style: TextStyle(color: Colors.cyan, decoration: TextDecoration.underline),
                             ),
                           ),
@@ -776,6 +785,173 @@ class _TitleScreenState extends State<TitleScreen> with SingleTickerProviderStat
               child: const Text("CLOSE", style: TextStyle(color: Colors.white)),
             ),
           ],
+        );
+      },
+    );
+  }
+
+  void _showLinkAccountDialog(BuildContext context) {
+    final shop = Shop.instance;
+    final usernameController = TextEditingController();
+    final passwordController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setStateDialog) {
+            bool isLinked = shop.getLinkedUsername() != null;
+            bool isLoading = false;
+            String errorMessage = "";
+            String successMessage = "";
+
+            Future<void> handleAuth(bool isRegister) async {
+              if (usernameController.text.trim().isEmpty || passwordController.text.isEmpty) {
+                setStateDialog(() {
+                  errorMessage = "Username and password cannot be empty";
+                });
+                return;
+              }
+
+              setStateDialog(() {
+                isLoading = true;
+                errorMessage = "";
+                successMessage = "";
+              });
+
+              try {
+                final success = await shop.loginAndSync(
+                  usernameController.text.trim(),
+                  passwordController.text,
+                  isRegister,
+                );
+                if (success) {
+                  setStateDialog(() {
+                    successMessage = isRegister ? "Registered and synced!" : "Logged in and synced!";
+                  });
+                }
+              } catch (e) {
+                setStateDialog(() {
+                  errorMessage = e.toString().replaceAll("Exception:", "").trim();
+                });
+              } finally {
+                setStateDialog(() {
+                  isLoading = false;
+                });
+              }
+            }
+
+            if (isLinked) {
+              return AlertDialog(
+                backgroundColor: const Color(0xFF2C3E50),
+                title: const Text("Linked Account", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text("Linked as: ${shop.getLinkedUsername()}", style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 16),
+                    Text("Games Played: ${shop.getGames()}", style: const TextStyle(color: Colors.grey)),
+                    Text("Wins: ${shop.getWins()}", style: const TextStyle(color: Colors.grey)),
+                    Text("Losses: ${shop.getLosses()}", style: const TextStyle(color: Colors.grey)),
+                    Text("Coins: ${shop.getCoins()}", style: const TextStyle(color: Colors.grey)),
+                    const SizedBox(height: 20),
+                    if (isLoading)
+                      const Center(child: CircularProgressIndicator(color: Colors.cyan))
+                    else ...[
+                      if (errorMessage.isNotEmpty)
+                        Text(errorMessage, style: const TextStyle(color: Colors.redAccent, fontSize: 12)),
+                      if (successMessage.isNotEmpty)
+                        Text(successMessage, style: const TextStyle(color: Colors.greenAccent, fontSize: 12)),
+                    ],
+                  ],
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () async {
+                      setStateDialog(() => isLoading = true);
+                      await shop.syncWithCloud();
+                      setStateDialog(() {
+                        isLoading = false;
+                        successMessage = "Stats synced with cloud!";
+                      });
+                    },
+                    child: const Text("Sync Now", style: TextStyle(color: Colors.cyan)),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      shop.unlinkAccount();
+                      setStateDialog(() {});
+                    },
+                    child: const Text("Unlink", style: TextStyle(color: Colors.redAccent)),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text("Close", style: TextStyle(color: Colors.white)),
+                  ),
+                ],
+              );
+            }
+
+            return AlertDialog(
+              backgroundColor: const Color(0xFF2C3E50),
+              title: const Text("Link Account", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text("Connect your game to Cloudflare to sync your coins, unlocks, and win/loss statistics.", style: TextStyle(color: Colors.grey, fontSize: 12)),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: usernameController,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: const InputDecoration(
+                        labelText: "Username",
+                        labelStyle: TextStyle(color: Colors.grey),
+                        enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey)),
+                        focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.cyan)),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: passwordController,
+                      obscureText: true,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: const InputDecoration(
+                        labelText: "Password",
+                        labelStyle: TextStyle(color: Colors.grey),
+                        enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey)),
+                        focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.cyan)),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    if (isLoading)
+                      const CircularProgressIndicator(color: Colors.cyan)
+                    else ...[
+                      if (errorMessage.isNotEmpty)
+                        Text(errorMessage, style: const TextStyle(color: Colors.redAccent, fontSize: 12)),
+                      if (successMessage.isNotEmpty)
+                        Text(successMessage, style: const TextStyle(color: Colors.greenAccent, fontSize: 12)),
+                    ],
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => handleAuth(false),
+                  child: const Text("Login & Sync", style: TextStyle(color: Colors.cyan)),
+                ),
+                TextButton(
+                  onPressed: () => handleAuth(true),
+                  child: const Text("Register", style: TextStyle(color: Colors.cyan)),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text("Cancel", style: TextStyle(color: Colors.white)),
+                ),
+              ],
+            );
+          },
         );
       },
     );
