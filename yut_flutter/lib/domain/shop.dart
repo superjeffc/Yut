@@ -139,6 +139,7 @@ class Shop {
           _prefs!.setInt("coins", coins - cost);
         } catch (_) {}
       }
+      syncWithCloud();
       return true;
     }
     return false;

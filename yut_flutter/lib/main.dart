@@ -897,11 +897,14 @@ class _TitleScreenState extends State<TitleScreen> with SingleTickerProviderStat
                     Text("Linked as: ${shop.getLinkedName() ?? 'Google User'}", style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
                     Text(shop.getLinkedEmail() ?? "", style: const TextStyle(color: Colors.cyan, fontSize: 14)),
                     const SizedBox(height: 16),
-                    Text("Games Played: ${shop.getGames()}", style: const TextStyle(color: Colors.grey)),
-                    Text("Wins: ${shop.getWins()}", style: const TextStyle(color: Colors.grey)),
-                    Text("Losses: ${shop.getLosses()}", style: const TextStyle(color: Colors.grey)),
-                    Text("Coins: ${shop.getCoins()}", style: const TextStyle(color: Colors.grey)),
-                    const SizedBox(height: 20),
+                    const Row(
+                      children: [
+                        Icon(Icons.check_circle, color: Colors.greenAccent, size: 18),
+                        SizedBox(width: 8),
+                        Text("Account connected & sync active", style: TextStyle(color: Colors.greenAccent, fontSize: 12)),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
                     if (isLoading)
                       const Center(child: CircularProgressIndicator(color: Colors.cyan))
                     else ...[
@@ -913,19 +916,6 @@ class _TitleScreenState extends State<TitleScreen> with SingleTickerProviderStat
                   ],
                 ),
                 actions: [
-                  TextButton(
-                    onPressed: () async {
-                      setStateDialog(() => isLoading = true);
-                      await shop.syncWithCloud();
-                      if (context.mounted) {
-                        setStateDialog(() {
-                          isLoading = false;
-                          successMessage = "Stats synced successfully!";
-                        });
-                      }
-                    },
-                    child: const Text("Sync Now", style: TextStyle(color: Colors.cyan)),
-                  ),
                   TextButton(
                     onPressed: () {
                       shop.unlinkAccount();
@@ -1140,6 +1130,9 @@ class _GameScreenState extends State<GameScreen> {
       behavior: HitTestBehavior.translucent,
       onTap: () {
         updateMusicPlayback();
+        if (controller.selectedPieceIndex != null) {
+          controller.cancelSelection();
+        }
       },
       child: PopScope(
         canPop: false,
@@ -1350,7 +1343,11 @@ class _GameScreenState extends State<GameScreen> {
                           if (controller.highlightedTiles.contains(piece.location)) {
                             controller.makeMove(piece.location);
                           } else if (controller.turn == pIdx) {
-                            controller.selectPiece(pieceIdx);
+                            if (controller.selectedPieceIndex == pieceIdx) {
+                              controller.cancelSelection();
+                            } else {
+                              controller.selectPiece(pieceIdx);
+                            }
                           }
                         },
                         child: AnimatedPiece(
