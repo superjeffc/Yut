@@ -1130,6 +1130,7 @@ class _GameScreenState extends State<GameScreen> {
       behavior: HitTestBehavior.translucent,
       onTap: () {
         updateMusicPlayback();
+        if (controller.turn == 1 && controller.isComputerPlaying) return;
         if (controller.selectedPieceIndex != null) {
           controller.cancelSelection();
         }
