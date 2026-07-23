@@ -1303,6 +1303,7 @@ class _GameScreenState extends State<GameScreen> {
             final selectedAvatars = shop.getSelectedAnimals();
             bool isRollButtonVisible = (controller.board.rollEmpty() || controller.tipsText == "Roll again!") &&
                                        !(controller.turn == 1 && controller.isComputerPlaying) &&
+                                       (!controller.isMultiplayer || controller.turn == controller.myPlayerIndex) &&
                                        !controller.isRollInProgress &&
                                        !controller.isMoveInProgress &&
                                        !controller.isGameOver;
@@ -1463,6 +1464,7 @@ class _GameScreenState extends State<GameScreen> {
                     final offset = offsets[piece.location] ?? Offset.zero;
 
                     bool isSelectable = controller.turn == pIdx &&
+                                        (!controller.isMultiplayer || controller.turn == controller.myPlayerIndex) &&
                                         !controller.isGameOver &&
                                         controller.board.getPosRollCount() > 0 &&
                                         !controller.isRollInProgress &&
@@ -1479,6 +1481,7 @@ class _GameScreenState extends State<GameScreen> {
                       child: GestureDetector(
                         onTap: () {
                           if (controller.turn == 1 && controller.isComputerPlaying) return;
+                          if (controller.isMultiplayer && controller.turn != controller.myPlayerIndex) return;
                           if (isRollButtonVisible) return;
                           if (controller.highlightedTiles.contains(piece.location)) {
                             controller.makeMove(piece.location);
@@ -1631,6 +1634,7 @@ class _GameScreenState extends State<GameScreen> {
                     controller.board.getPosRollCount() > 0 && 
                     !controller.board.rollEmpty() &&
                     !(controller.turn == 1 && controller.isComputerPlaying) &&
+                    (!controller.isMultiplayer || controller.turn == controller.myPlayerIndex) &&
                     !controller.isMoveInProgress &&
                     !isRollButtonVisible)
                   Positioned(
@@ -1641,6 +1645,7 @@ class _GameScreenState extends State<GameScreen> {
                     child: InkWell(
                       onTap: () {
                         if (controller.turn == 1 && controller.isComputerPlaying) return;
+                        if (controller.isMultiplayer && controller.turn != controller.myPlayerIndex) return;
                         controller.selectPiece(-1);
                       },
                       child: Stack(
@@ -1770,7 +1775,15 @@ class _GameScreenState extends State<GameScreen> {
                                 const Text("GAME OVER", style: TextStyle(fontSize: 26, color: Colors.white, fontWeight: FontWeight.bold)),
                                 const SizedBox(height: 16),
                                 Text(
-                                  controller.players[0].hasWon() ? "Congratulations, you won!" : "Computer wins!",
+                                  controller.isMultiplayer
+                                      ? (controller.statusText == "Opponent Forfeited!"
+                                          ? "Opponent forfeited. Congratulations, you won!"
+                                          : (controller.statusText.contains("Player ${controller.myPlayerIndex + 1}")
+                                              ? "Congratulations, you won!"
+                                              : "Opponent wins!"))
+                                      : (controller.players[0].hasWon()
+                                          ? "Congratulations, you won!"
+                                          : (controller.isComputerPlaying ? "Computer wins!" : "Player 2 wins!")),
                                   style: const TextStyle(fontSize: 18, color: Colors.amber),
                                   textAlign: TextAlign.center,
                                 ),
