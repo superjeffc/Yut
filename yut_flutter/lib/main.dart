@@ -259,27 +259,26 @@ class _TitleScreenState extends State<TitleScreen> with SingleTickerProviderStat
           // Content Wrapper
           SafeArea(
             child: Center(
-              child: SingleChildScrollView(
-                child: Container(
-                  width: min(size.width, 500),
-                  height: max(size.height * 0.9, 650),
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      // Game Logo
-                      Hero(
-                        tag: 'logo',
-                        child: Container(
-                          height: 180,
-                          decoration: const BoxDecoration(
-                            image: DecorationImage(
-                              image: AssetImage("assets/images/yut.png"),
-                              fit: BoxFit.contain,
-                            ),
+              child: Container(
+                width: min(size.width, 500),
+                height: size.height * 0.9,
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    // Game Logo
+                    Hero(
+                      tag: 'logo',
+                      child: Container(
+                        height: min(150.0, size.height * 0.22),
+                        decoration: const BoxDecoration(
+                          image: DecorationImage(
+                            image: AssetImage("assets/images/yut.png"),
+                            fit: BoxFit.contain,
                           ),
                         ),
                       ),
+                    ),
 
                       // Sound Quick-Toggle
                       Row(
@@ -365,8 +364,7 @@ class _TitleScreenState extends State<TitleScreen> with SingleTickerProviderStat
                           ],
                         ),
                       ),
-                    ],
-                  ),
+                  ],
                 ),
               ),
             ),
@@ -404,7 +402,10 @@ class _TitleScreenState extends State<TitleScreen> with SingleTickerProviderStat
             letterSpacing: 1.5,
           ),
         ),
-        onPressed: onPressed,
+        onPressed: () {
+          updateMusicPlayback();
+          onPressed();
+        },
         child: Text(text),
       ),
     );
