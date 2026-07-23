@@ -196,8 +196,9 @@ class GameController extends ChangeNotifier {
       players[turn].numPieces += 1;
     }
 
-    Piece piece = players[turn].pieces[startPieceIndex];
+    final piece = players[turn].pieces[startPieceIndex];
     int startLocation = piece.location;
+    bool wasMyTurn = (turn == myPlayerIndex);
 
     // Find the roll amount used to reach this destination
     int rollUsed = 0;
@@ -229,16 +230,6 @@ class GameController extends ChangeNotifier {
 
     piece.location = dest;
     board.removeRoll(rollUsed);
-
-    if (isMultiplayer && onSendMultiplayerAction != null && turn == myPlayerIndex) {
-      onSendMultiplayerAction!({
-        "type": "MOVE",
-        "p1Pieces": players[0].pieces.map((p) => p.location).toList(),
-        "p2Pieces": players[1].pieces.map((p) => p.location).toList(),
-        "rollUsed": getRollName(rollUsed),
-        "nextTurn": (board.rollEmpty() || (board.hasOnlyNegativeRoll() && players[turn].hasNoPiecesOnBoard())) ? oppTurn : turn,
-      });
-    }
 
     // Check capture/stack rules
     bool isCapture = false;
@@ -293,6 +284,16 @@ class GameController extends ChangeNotifier {
       }
 
       notifyListeners();
+      
+      if (isMultiplayer && onSendMultiplayerAction != null && wasMyTurn) {
+        onSendMultiplayerAction!({
+          "type": "MOVE",
+          "p1Pieces": players[0].pieces.map((p) => p.location).toList(),
+          "p2Pieces": players[1].pieces.map((p) => p.location).toList(),
+          "rollUsed": getRollName(rollUsed),
+          "nextTurn": turn,
+        });
+      }
       return;
     }
 
@@ -319,6 +320,16 @@ class GameController extends ChangeNotifier {
           executeComputerMove();
         }
       }
+    }
+
+    if (isMultiplayer && onSendMultiplayerAction != null && wasMyTurn) {
+      onSendMultiplayerAction!({
+        "type": "MOVE",
+        "p1Pieces": players[0].pieces.map((p) => p.location).toList(),
+        "p2Pieces": players[1].pieces.map((p) => p.location).toList(),
+        "rollUsed": getRollName(rollUsed),
+        "nextTurn": turn,
+      });
     }
   }
 
