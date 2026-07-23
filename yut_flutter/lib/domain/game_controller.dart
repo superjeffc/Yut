@@ -291,6 +291,8 @@ class GameController extends ChangeNotifier {
           "type": "MOVE",
           "p1Pieces": players[0].pieces.map((p) => p.location).toList(),
           "p2Pieces": players[1].pieces.map((p) => p.location).toList(),
+          "p1Values": players[0].pieces.map((p) => p.value).toList(),
+          "p2Values": players[1].pieces.map((p) => p.value).toList(),
           "rollUsed": getRollName(rollUsed),
           "nextTurn": turn,
         });
@@ -324,11 +326,13 @@ class GameController extends ChangeNotifier {
     }
 
     if (isMultiplayer && onSendMultiplayerAction != null && wasMyTurn) {
-      print("DEBUG: sending MOVE action p1=${players[0].pieces.map((p) => p.location).toList()} p2=${players[1].pieces.map((p) => p.location).toList()}");
+      print("DEBUG: sending MOVE action p1=${players[0].pieces.map((p) => p.location).toList()} p2=${players[1].pieces.map((p) => p.location).toList()} p1Val=${players[0].pieces.map((p) => p.value).toList()} p2Val=${players[1].pieces.map((p) => p.value).toList()}");
       onSendMultiplayerAction!({
         "type": "MOVE",
         "p1Pieces": players[0].pieces.map((p) => p.location).toList(),
         "p2Pieces": players[1].pieces.map((p) => p.location).toList(),
+        "p1Values": players[0].pieces.map((p) => p.value).toList(),
+        "p2Values": players[1].pieces.map((p) => p.value).toList(),
         "rollUsed": getRollName(rollUsed),
         "nextTurn": turn,
       });
@@ -498,16 +502,21 @@ class GameController extends ChangeNotifier {
     int newTurn = state["turn"] ?? 0;
     List<dynamic> p1Pos = state["p1Pieces"] ?? [-1, -1, -1, -1];
     List<dynamic> p2Pos = state["p2Pieces"] ?? [-1, -1, -1, -1];
+    List<dynamic> p1Val = state["p1Values"] ?? [1, 1, 1, 1];
+    List<dynamic> p2Val = state["p2Values"] ?? [1, 1, 1, 1];
     List<dynamic> rolls = state["rollsLeft"] ?? [];
     bool newIsGameOver = state["isGameOver"] ?? false;
     int winnerIdx = state["winnerIndex"] ?? -1;
 
     for (int i = 0; i < 4; i++) {
       players[0].pieces[i].location = p1Pos[i] as int;
-      players[1].pieces[i].location = p2Pos[i] as int;
-    }
+      players[0].pieces[i].resetValue();
+      players[0].pieces[i].addValue((p1Val[i] as int) - 1);
 
-    _recalculateStacks();
+      players[1].pieces[i].location = p2Pos[i] as int;
+      players[1].pieces[i].resetValue();
+      players[1].pieces[i].addValue((p2Val[i] as int) - 1);
+    }
 
     board.rollArray = List<int>.filled(5, 0);
     for (int i = 0; i < rolls.length; i++) {
@@ -521,7 +530,9 @@ class GameController extends ChangeNotifier {
     board.playerTurn = newTurn;
     isGameOver = newIsGameOver;
 
-    print("DEBUG: syncMultiplayerState turn=$turn, p1=$p1Pos, p2=$p2Pos, rolls=$rolls");
+    bool canRoll = state["canRoll"] ?? true;
+
+    print("DEBUG: syncMultiplayerState turn=$turn, p1=$p1Pos, p2=$p2Pos, p1Val=$p1Val, p2Val=$p2Val, rolls=$rolls, canRoll=$canRoll");
 
     if (isGameOver) {
       statusText = winnerIdx == 0 ? "Player 1 Wins!" : "Player 2 Wins!";
@@ -531,8 +542,13 @@ class GameController extends ChangeNotifier {
         statusText = turn == myPlayerIndex ? "Your Turn" : "Opponent's Turn";
         tipsText = turn == myPlayerIndex ? "Roll the sticks!" : "Waiting for opponent...";
       } else {
-        statusText = turn == myPlayerIndex ? "Your Move" : "Opponent's Move";
-        tipsText = turn == myPlayerIndex ? "Select a piece to move." : "Opponent is choosing...";
+        if (canRoll && turn == myPlayerIndex) {
+          statusText = "Rolled ${rolls.isNotEmpty ? rolls.last : ''}!";
+          tipsText = "Roll again!";
+        } else {
+          statusText = turn == myPlayerIndex ? "Your Move" : "Opponent's Move";
+          tipsText = turn == myPlayerIndex ? "Select a piece to move." : "Opponent is choosing...";
+        }
       }
     }
 
