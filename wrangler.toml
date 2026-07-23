@@ -1,6 +1,9 @@
 name = "yut-game"
 pages_build_output_dir = "yut_flutter/build/web"
 
+[vars]
+GOOGLE_CLIENT_ID = "223698446706-nf21ero1897j813o81db0nsmsrhavojs.apps.googleusercontent.com"
+
 [[d1_databases]]
 binding = "DB"
 database_name = "yut-db"
