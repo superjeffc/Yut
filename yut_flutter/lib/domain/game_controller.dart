@@ -105,6 +105,19 @@ class GameController extends ChangeNotifier {
       statusText = "Rolled Back-Do (-1) with no pieces on board!";
       tipsText = "Turn ends.";
       notifyListeners();
+
+      if (isMultiplayer && onSendMultiplayerAction != null && turn == myPlayerIndex) {
+        onSendMultiplayerAction!({
+          "type": "MOVE",
+          "p1Pieces": players[0].pieces.map((p) => p.location).toList(),
+          "p2Pieces": players[1].pieces.map((p) => p.location).toList(),
+          "p1Values": players[0].pieces.map((p) => p.value).toList(),
+          "p2Values": players[1].pieces.map((p) => p.value).toList(),
+          "rollUsed": "Back-Do",
+          "nextTurn": oppTurn,
+        });
+      }
+
       await Future.delayed(const Duration(milliseconds: 1500));
       endTurn();
     } else if (canRollAgain) {
