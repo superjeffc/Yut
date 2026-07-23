@@ -14,6 +14,14 @@ export async function onRequest(context) {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Handle client_id action (GET)
+  if (request.method === "GET" && action === "client_id") {
+    return new Response(
+      JSON.stringify({ clientId: env.GOOGLE_CLIENT_ID || "" }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+
   if (request.method !== "POST") {
     return new Response(JSON.stringify({ error: "Method not allowed" }), {
       status: 405,
@@ -22,16 +30,6 @@ export async function onRequest(context) {
   }
 
   try {
-    const body = await request.json();
-    const { username, password } = body;
-
-    if (!username || !password || username.trim() === "" || password.trim() === "") {
-      return new Response(JSON.stringify({ error: "Username and password are required" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
     const db = env.DB;
     if (!db) {
       return new Response(JSON.stringify({ error: "Database binding DB not found" }), {
@@ -40,50 +38,33 @@ export async function onRequest(context) {
       });
     }
 
-    const passwordHash = await hashPassword(password);
+    const body = await request.json();
 
-    if (action === "register") {
-      // Check if user exists
-      const existing = await db.prepare("SELECT username FROM users WHERE username = ?").bind(username).first();
-      if (existing) {
-        return new Response(JSON.stringify({ error: "Username already exists" }), {
+    if (action === "google") {
+      const { token } = body;
+      if (!token) {
+        return new Response(JSON.stringify({ error: "Google ID Token is required" }), {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
-      const coins = body.coins || 0;
-      const unlockedAnimals = body.unlockedAnimals || "Seal Penguin";
-      const games = body.games || 0;
-      const wins = body.wins || 0;
-      const losses = body.losses || 0;
-
-      await db.prepare(
-        "INSERT INTO users (username, password_hash, coins, unlocked_animals, games, wins, losses) VALUES (?, ?, ?, ?, ?, ?, ?)"
-      )
-      .bind(username, passwordHash, coins, unlockedAnimals, games, wins, losses)
-      .run();
-
-      return new Response(JSON.stringify({ success: true, message: "Account registered successfully!" }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    } 
-    
-    else if (action === "login" || action === "sync") {
-      const user = await db.prepare("SELECT * FROM users WHERE username = ?").bind(username).first();
-      if (!user) {
-        return new Response(JSON.stringify({ error: "User not found" }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      if (user.password_hash !== passwordHash) {
-        return new Response(JSON.stringify({ error: "Invalid password" }), {
+      // Verify token with Google's tokeninfo API
+      const verifyRes = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${token}`);
+      if (!verifyRes.ok) {
+        return new Response(JSON.stringify({ error: "Invalid Google ID Token" }), {
           status: 401,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
+
+      const payload = await verifyRes.json();
+      const googleId = payload.sub;
+      const email = payload.email;
+      const name = payload.name || "";
+
+      // Check if user exists in D1 SQL
+      let user = await db.prepare("SELECT * FROM users WHERE google_id = ?").bind(googleId).first();
 
       const localCoins = body.coins || 0;
       const localAnimals = (body.unlockedAnimals || "Seal Penguin").split(" ").filter(Boolean);
@@ -91,13 +72,30 @@ export async function onRequest(context) {
       const localWins = body.wins || 0;
       const localLosses = body.losses || 0;
 
+      if (!user) {
+        // Create user
+        await db.prepare(
+          "INSERT INTO users (google_id, email, name, coins, unlocked_animals, games, wins, losses) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+        )
+        .bind(googleId, email, name, localCoins, localAnimals.join(" "), localGames, localWins, localLosses)
+        .run();
+
+        user = {
+          coins: localCoins,
+          unlocked_animals: localAnimals.join(" "),
+          games: localGames,
+          wins: localWins,
+          losses: localLosses
+        };
+      }
+
       const dbCoins = user.coins || 0;
       const dbAnimals = (user.unlocked_animals || "Seal Penguin").split(" ").filter(Boolean);
       const dbGames = user.games || 0;
       const dbWins = user.wins || 0;
       const dbLosses = user.losses || 0;
 
-      // Merge (take max of coins, wins, losses, games, union of unlocked animals)
+      // Merge (take max/union)
       const mergedCoins = Math.max(localCoins, dbCoins);
       const mergedAnimalsSet = new Set([...localAnimals, ...dbAnimals]);
       const mergedAnimals = Array.from(mergedAnimalsSet).join(" ");
@@ -106,14 +104,17 @@ export async function onRequest(context) {
       const mergedLosses = Math.max(localLosses, dbLosses);
 
       await db.prepare(
-        "UPDATE users SET coins = ?, unlocked_animals = ?, games = ?, wins = ?, losses = ? WHERE username = ?"
+        "UPDATE users SET coins = ?, unlocked_animals = ?, games = ?, wins = ?, losses = ? WHERE google_id = ?"
       )
-      .bind(mergedCoins, mergedAnimals, mergedGames, mergedWins, mergedLosses, username)
+      .bind(mergedCoins, mergedAnimals, mergedGames, mergedWins, mergedLosses, googleId)
       .run();
 
       return new Response(
         JSON.stringify({
           success: true,
+          googleId,
+          email,
+          name,
           coins: mergedCoins,
           unlockedAnimals: mergedAnimals,
           games: mergedGames,
@@ -134,12 +135,4 @@ export async function onRequest(context) {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
-}
-
-async function hashPassword(password) {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(password);
-  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
 }

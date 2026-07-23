@@ -1,9 +1,12 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:math';
 import 'dart:ui' as ui;
 import 'dart:js' as js;
+import 'dart:js_util' as js_util;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 import 'domain/board.dart';
 import 'domain/game_controller.dart';
@@ -716,7 +719,7 @@ class _TitleScreenState extends State<TitleScreen> with SingleTickerProviderStat
               const Divider(color: Colors.grey),
               ListTile(
                 leading: const Icon(Icons.cloud_sync, color: Colors.cyan),
-                title: Text(shop.getLinkedUsername() != null ? "Linked: ${shop.getLinkedUsername()}" : "Link Account", style: const TextStyle(color: Colors.white)),
+                title: Text(shop.getLinkedEmail() != null ? "Linked: ${shop.getLinkedEmail()}" : "Link Account", style: const TextStyle(color: Colors.white)),
                 onTap: () {
                   Navigator.pop(context);
                   _showLinkAccountDialog(context);
@@ -792,23 +795,40 @@ class _TitleScreenState extends State<TitleScreen> with SingleTickerProviderStat
 
   void _showLinkAccountDialog(BuildContext context) {
     final shop = Shop.instance;
-    final usernameController = TextEditingController();
-    final passwordController = TextEditingController();
 
     showDialog(
       context: context,
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setStateDialog) {
-            bool isLinked = shop.getLinkedUsername() != null;
+            bool isLinked = shop.getLinkedEmail() != null;
             bool isLoading = false;
+            bool isCheckingConfig = true;
+            String googleClientId = "";
             String errorMessage = "";
             String successMessage = "";
 
-            Future<void> handleAuth(bool isRegister) async {
-              if (usernameController.text.trim().isEmpty || passwordController.text.isEmpty) {
+            void checkGoogleConfig() async {
+              try {
+                final response = await http.get(Uri.parse("/api/auth?action=client_id")).timeout(const Duration(seconds: 4));
+                if (response.statusCode == 200) {
+                  final data = jsonDecode(response.body);
+                  googleClientId = data["clientId"] ?? "";
+                }
+              } catch (_) {}
+              setStateDialog(() {
+                isCheckingConfig = false;
+              });
+            }
+
+            if (isCheckingConfig && !isLinked) {
+              checkGoogleConfig();
+            }
+
+            Future<void> handleGoogleSignIn() async {
+              if (googleClientId.isEmpty) {
                 setStateDialog(() {
-                  errorMessage = "Username and password cannot be empty";
+                  errorMessage = "Google Client ID is not configured on the server.";
                 });
                 return;
               }
@@ -820,14 +840,18 @@ class _TitleScreenState extends State<TitleScreen> with SingleTickerProviderStat
               });
 
               try {
-                final success = await shop.loginAndSync(
-                  usernameController.text.trim(),
-                  passwordController.text,
-                  isRegister,
-                );
+                final promise = js.context.callMethod('triggerGoogleAuth', [googleClientId]);
+                final resultStr = await js_util.promiseToFuture(promise);
+                final result = jsonDecode(resultStr);
+
+                final token = result["token"] ?? "";
+                final email = result["email"] ?? "";
+                final name = result["name"] ?? "";
+
+                final success = await shop.loginAndSyncGoogle(token, email, name);
                 if (success) {
                   setStateDialog(() {
-                    successMessage = isRegister ? "Registered and synced!" : "Logged in and synced!";
+                    successMessage = "Google Account connected & synced!";
                   });
                 }
               } catch (e) {
@@ -844,12 +868,13 @@ class _TitleScreenState extends State<TitleScreen> with SingleTickerProviderStat
             if (isLinked) {
               return AlertDialog(
                 backgroundColor: const Color(0xFF2C3E50),
-                title: const Text("Linked Account", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                title: const Text("Linked Google Account", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                 content: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text("Linked as: ${shop.getLinkedUsername()}", style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                    Text("Linked as: ${shop.getLinkedName() ?? 'Google User'}", style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                    Text(shop.getLinkedEmail() ?? "", style: const TextStyle(color: Colors.cyan, fontSize: 14)),
                     const SizedBox(height: 16),
                     Text("Games Played: ${shop.getGames()}", style: const TextStyle(color: Colors.grey)),
                     Text("Wins: ${shop.getWins()}", style: const TextStyle(color: Colors.grey)),
@@ -873,7 +898,7 @@ class _TitleScreenState extends State<TitleScreen> with SingleTickerProviderStat
                       await shop.syncWithCloud();
                       setStateDialog(() {
                         isLoading = false;
-                        successMessage = "Stats synced with cloud!";
+                        successMessage = "Stats synced with Cloudflare!";
                       });
                     },
                     child: const Text("Sync Now", style: TextStyle(color: Colors.cyan)),
@@ -895,56 +920,57 @@ class _TitleScreenState extends State<TitleScreen> with SingleTickerProviderStat
 
             return AlertDialog(
               backgroundColor: const Color(0xFF2C3E50),
-              title: const Text("Link Account", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Text("Connect your game to Cloudflare to sync your coins, unlocks, and win/loss statistics.", style: TextStyle(color: Colors.grey, fontSize: 12)),
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: usernameController,
-                      style: const TextStyle(color: Colors.white),
-                      decoration: const InputDecoration(
-                        labelText: "Username",
-                        labelStyle: TextStyle(color: Colors.grey),
-                        enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey)),
-                        focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.cyan)),
+              title: const Text("Link Google Account", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text("Connect your Google Account to Cloudflare D1 to securely backup and sync your coins, unlocks, and win/loss stats across platforms.", style: TextStyle(color: Colors.grey, fontSize: 12), textAlign: TextAlign.center),
+                  const SizedBox(height: 24),
+                  if (isCheckingConfig)
+                    const CircularProgressIndicator(color: Colors.cyan)
+                  else if (googleClientId.isEmpty)
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.redAccent.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.redAccent.withOpacity(0.3)),
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    TextField(
-                      controller: passwordController,
-                      obscureText: true,
-                      style: const TextStyle(color: Colors.white),
-                      decoration: const InputDecoration(
-                        labelText: "Password",
-                        labelStyle: TextStyle(color: Colors.grey),
-                        enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey)),
-                        focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.cyan)),
+                      child: const Text(
+                        "Google Sign-In is not configured.\n\nPlease define GOOGLE_CLIENT_ID environment variable in your Cloudflare Pages Dashboard.",
+                        style: TextStyle(color: Colors.redAccent, fontSize: 12),
+                        textAlign: TextAlign.center,
                       ),
+                    )
+                  else if (isLoading)
+                    const CircularProgressIndicator(color: Colors.cyan)
+                  else
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: Colors.black87,
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                      icon: Image.network(
+                        "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/24px-Google_%22G%22_logo.svg.png",
+                        width: 20,
+                        height: 20,
+                      ),
+                      label: const Text("Sign In with Google", style: TextStyle(fontWeight: FontWeight.bold)),
+                      onPressed: handleGoogleSignIn,
                     ),
+                  if (errorMessage.isNotEmpty) ...[
                     const SizedBox(height: 16),
-                    if (isLoading)
-                      const CircularProgressIndicator(color: Colors.cyan)
-                    else ...[
-                      if (errorMessage.isNotEmpty)
-                        Text(errorMessage, style: const TextStyle(color: Colors.redAccent, fontSize: 12)),
-                      if (successMessage.isNotEmpty)
-                        Text(successMessage, style: const TextStyle(color: Colors.greenAccent, fontSize: 12)),
-                    ],
+                    Text(errorMessage, style: const TextStyle(color: Colors.redAccent, fontSize: 12), textAlign: TextAlign.center),
                   ],
-                ),
+                  if (successMessage.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    Text(successMessage, style: const TextStyle(color: Colors.greenAccent, fontSize: 12), textAlign: TextAlign.center),
+                  ],
+                ],
               ),
               actions: [
-                TextButton(
-                  onPressed: () => handleAuth(false),
-                  child: const Text("Login & Sync", style: TextStyle(color: Colors.cyan)),
-                ),
-                TextButton(
-                  onPressed: () => handleAuth(true),
-                  child: const Text("Register", style: TextStyle(color: Colors.cyan)),
-                ),
                 TextButton(
                   onPressed: () => Navigator.pop(context),
                   child: const Text("Cancel", style: TextStyle(color: Colors.white)),
