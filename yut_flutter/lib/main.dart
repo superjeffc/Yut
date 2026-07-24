@@ -693,10 +693,12 @@ class _TitleScreenState extends State<TitleScreen> with SingleTickerProviderStat
                   // Section 6 & 7
                   const Text(
                     "COINS\n\n"
-                    "Earn coins to buy new avatars!\n\n"
-                    "• Earn 1 coin for playing a two player match\n"
-                    "• Earn 1 coin for losing against a computer\n"
-                    "• Earn 3 coins for winning against a computer\n",
+                    "Earn coins by playing matches to unlock new avatars in the Avatar Shop!\n\n"
+                    "• Online Multiplayer Winner: 5 Coins\n"
+                    "• Online Multiplayer Runner-Up: 2 Coins\n"
+                    "• Vs Computer Winner: 3 Coins\n"
+                    "• Vs Computer Loss: 1 Coin\n"
+                    "• Local Pass & Play Match: 1 Coin\n",
                     style: TextStyle(color: Colors.white, fontSize: 15, height: 1.4),
                   ),
                   Image.asset("assets/images/welcome.png", height: 150, fit: BoxFit.contain, errorBuilder: (_, __, ___) => const SizedBox()),
