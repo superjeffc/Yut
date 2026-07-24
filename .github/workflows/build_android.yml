@@ -1,0 +1,35 @@
+name: Build Android Release (.aab)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Set up Flutter SDK
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Build Android App Bundle (.aab)
+        run: |
+          cd yut_flutter
+          flutter pub get
+          flutter build aab --release
+
+      - name: Upload Android App Bundle Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release-aab
+          path: yut_flutter/build/app/outputs/bundle/release/app-release.aab
