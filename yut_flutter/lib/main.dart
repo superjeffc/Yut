@@ -2,28 +2,22 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 import 'dart:ui' as ui;
-import 'dart:js' as js;
-import 'dart:html' as html;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
+import 'package:web_socket_channel/web_socket_channel.dart';
 import 'domain/board.dart';
 import 'domain/game_controller.dart';
 import 'domain/shop.dart';
+import 'utils/web_interop.dart';
 
 void updateMusicPlayback() {
   bool enabled = Shop.instance.getSoundEnabled();
-  if (kIsWeb) {
-    try {
-      if (enabled) {
-        js.context.callMethod('playBackgroundMusic');
-      } else {
-        js.context.callMethod('pauseBackgroundMusic');
-      }
-    } catch (e) {
-      print("Javascript music play error: $e");
-    }
+  if (enabled) {
+    playBackgroundMusic();
+  } else {
+    pauseBackgroundMusic();
   }
 }
 
@@ -198,7 +192,7 @@ class _TitleScreenState extends State<TitleScreen> with SingleTickerProviderStat
       updateMusicPlayback();
       if (kIsWeb) {
         try {
-          js.context.callMethod('removeLoader');
+        removeLoader();
         } catch (_) {}
       }
     });
@@ -772,7 +766,7 @@ class _TitleScreenState extends State<TitleScreen> with SingleTickerProviderStat
                             onTap: () {
                               if (kIsWeb) {
                                 try {
-                                  js.context.callMethod('open', ['https://superjeffc.com/']);
+                                  openExternalUrl('https://superjeffc.com/');
                                 } catch (_) {}
                               }
                             },
@@ -858,23 +852,14 @@ class _TitleScreenState extends State<TitleScreen> with SingleTickerProviderStat
               try {
                 final completer = Completer<String>();
 
-                final successCallback = js.allowInterop((String resultStr) {
-                  if (!completer.isCompleted) {
-                    completer.complete(resultStr);
-                  }
-                });
-
-                final errorCallback = js.allowInterop((String errorMsg) {
-                  if (!completer.isCompleted) {
-                    completer.completeError(errorMsg);
-                  }
-                });
-
-                js.context.callMethod('triggerGoogleAuth', [
-                  googleClientId,
-                  successCallback,
-                  errorCallback,
-                ]);
+                triggerGoogleAuth(
+                  (String resultStr) {
+                    if (!completer.isCompleted) completer.complete(resultStr);
+                  },
+                  (String errorMsg) {
+                    if (!completer.isCompleted) completer.completeError(errorMsg);
+                  },
+                );
 
                 final resultStr = await completer.future;
                 final result = jsonDecode(resultStr);
@@ -1053,7 +1038,7 @@ class MatchmakerDialog extends StatefulWidget {
 }
 
 class _MatchmakerDialogState extends State<MatchmakerDialog> {
-  html.WebSocket? _lobbySocket;
+  WebSocketChannel? _lobbyChannel;
   String _status = "Initializing matchmaking...";
   bool _isMatched = false;
 
@@ -1063,6 +1048,12 @@ class _MatchmakerDialogState extends State<MatchmakerDialog> {
     _startMatchmaking();
   }
 
+  @override
+  void dispose() {
+    _lobbyChannel?.sink.close();
+    super.dispose();
+  }
+
   void _startMatchmaking() {
     final shop = Shop.instance;
     final email = Uri.encodeComponent(shop.getLinkedEmail() ?? "guest_${Random().nextInt(1000000)}");
@@ -1070,71 +1061,63 @@ class _MatchmakerDialogState extends State<MatchmakerDialog> {
     final selectedAnimals = shop.getSelectedAnimals();
     final avatar = Uri.encodeComponent(selectedAnimals[0]);
 
-    final wsProtocol = html.window.location.protocol == "https:" ? "wss:" : "ws:";
-    final host = html.window.location.host;
-    final wsUrl = "$wsProtocol//$host/api/ws/lobby?email=$email&name=$name&avatar=$avatar&clientVersion=${GameController.appVersion}";
+    final wsUrl = getWsUrl("/api/ws/lobby?email=$email&name=$name&avatar=$avatar&clientVersion=${GameController.appVersion}");
 
     try {
-      _lobbySocket = html.WebSocket(wsUrl);
+      _lobbyChannel = WebSocketChannel.connect(Uri.parse(wsUrl));
 
-      _lobbySocket!.onMessage.listen((event) {
-        final data = jsonDecode(event.data);
-        if (data["type"] == "outdated_client") {
-          Navigator.pop(context);
-          _showOutdatedClientDialog(context, data["minVersion"] ?? GameController.appVersion);
-          return;
-        }
-        if (data["type"] == "waiting") {
-          setState(() {
-            _status = "Searching for an opponent...";
-          });
-        } 
-        else if (data["type"] == "matched") {
-          _isMatched = true;
-          final room = data["room"];
-          final pIdx = data["playerIndex"] as int;
-          
-          widget.controller.isMultiplayer = true;
-          widget.controller.myPlayerIndex = pIdx;
-          widget.controller.multiplayerRoomId = room;
-          widget.controller.isComputerPlaying = false;
-          widget.controller.resetGame();
+      _lobbyChannel!.stream.listen(
+        (event) {
+          final data = jsonDecode(event.toString());
+          if (data["type"] == "outdated_client") {
+            Navigator.pop(context);
+            _showOutdatedClientDialog(context, data["minVersion"] ?? GameController.appVersion);
+            return;
+          }
+          if (data["type"] == "waiting") {
+            setState(() {
+              _status = "Searching for an opponent...";
+            });
+          } 
+          else if (data["type"] == "matched") {
+            _isMatched = true;
+            final room = data["room"];
+            final pIdx = data["playerIndex"] as int;
+            
+            widget.controller.isMultiplayer = true;
+            widget.controller.myPlayerIndex = pIdx;
+            widget.controller.multiplayerRoomId = room;
+            widget.controller.isComputerPlaying = false;
+            widget.controller.resetGame();
 
-          Navigator.pop(context); // Close matchmaker dialog
+            Navigator.pop(context); // Close matchmaker dialog
 
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const GameScreen()),
-          );
-        }
-      });
-
-      _lobbySocket!.onClose.listen((_) {
-        if (!_isMatched && mounted) {
-          setState(() {
-            _status = "Connection lost. Try again.";
-          });
-        }
-      });
-
-      _lobbySocket!.onError.listen((_) {
-        if (mounted) {
-          setState(() {
-            _status = "Failed to connect to lobby.";
-          });
-        }
-      });
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const GameScreen()),
+            );
+          }
+        },
+        onDone: () {
+          if (!_isMatched && mounted) {
+            setState(() {
+              _status = "Connection lost. Try again.";
+            });
+          }
+        },
+        onError: (_) {
+          if (mounted) {
+            setState(() {
+              _status = "Failed to connect to lobby.";
+            });
+          }
+        },
+      );
     } catch (e) {
       setState(() {
-        _status = "Error: $e";
+        _status = "Connection error: $e";
       });
     }
-  }
-
-  @override
-  void dispose() {
-    _lobbySocket?.close();
-    super.dispose();
   }
 
   @override
@@ -1176,17 +1159,17 @@ class GameScreen extends StatefulWidget {
 }
 
 class _GameScreenState extends State<GameScreen> {
+  WebSocketChannel? _gameChannel;
   Timer? _blinkTimer;
-  bool _blinkState = false;
-  html.WebSocket? _gameSocket;
+  bool _isBlinking = false;
 
   @override
   void initState() {
     super.initState();
-    _blinkTimer = Timer.periodic(const Duration(milliseconds: 500), (timer) {
+    _blinkTimer = Timer.periodic(const Duration(milliseconds: 600), (timer) {
       if (mounted) {
         setState(() {
-          _blinkState = !_blinkState;
+          _isBlinking = !_isBlinking;
         });
       }
     });
@@ -1202,9 +1185,10 @@ class _GameScreenState extends State<GameScreen> {
   @override
   void dispose() {
     _blinkTimer?.cancel();
-    _gameSocket?.close();
+    _gameChannel?.sink.close();
     super.dispose();
   }
+  
   // Calculates coordinates dynamically based on display dimensions
   Map<int, Offset> _calculateTileOffsets(double width, double height) {
     double boardSize = height * 0.58;
@@ -1314,8 +1298,6 @@ class _GameScreenState extends State<GameScreen> {
                                        !controller.isMoveInProgress &&
                                        !controller.isGameOver;
 
-            print("DEBUG: isRollButtonVisible=$isRollButtonVisible, rollEmpty=${controller.board.rollEmpty()}, tipsText=${controller.tipsText}, turn=${controller.turn}, myPlayerIndex=${controller.myPlayerIndex}, isMultiplayer=${controller.isMultiplayer}");
-
             double avatarWidth = width < 450 ? 26 : 38;
             double textFontSize = width < 450 ? 11 : 14;
             double starSize = width < 450 ? 12 : 16;
@@ -1394,7 +1376,7 @@ class _GameScreenState extends State<GameScreen> {
                   bool isHighlighted = controller.highlightedTiles.contains(tileIdx);
 
                   String tileAsset;
-                  if (isHighlighted && _blinkState) {
+                  if (isHighlighted && _isBlinking) {
                     tileAsset = isSpecial ? "assets/images/orange_marker2.png" : "assets/images/blue_marker2.png";
                   } else {
                     tileAsset = isSpecial ? "assets/images/orange_marker.png" : "assets/images/blue_marker.png";
@@ -1409,7 +1391,6 @@ class _GameScreenState extends State<GameScreen> {
                       onTap: () {
                         if (controller.turn == 1 && controller.isComputerPlaying) return;
                         if (isHighlighted) {
-                          print("DEBUG: makeMove called on tile $tileIdx");
                           controller.makeMove(tileIdx);
                         } else {
                           controller.cancelSelection();
@@ -1433,11 +1414,10 @@ class _GameScreenState extends State<GameScreen> {
                     child: InkWell(
                       onTap: () {
                         if (controller.turn == 1 && controller.isComputerPlaying) return;
-                        print("DEBUG: makeMove called on tile 32 (Finish)");
                         controller.makeMove(32);
                       },
                       child: Image.asset(
-                        _blinkState ? "assets/images/finish2.png" : "assets/images/finish1.png",
+                        _isBlinking ? "assets/images/finish2.png" : "assets/images/finish1.png",
                         fit: BoxFit.contain,
                       ),
                     ),
@@ -1499,7 +1479,6 @@ class _GameScreenState extends State<GameScreen> {
                           if (controller.isMultiplayer && controller.turn != controller.myPlayerIndex) return;
                           if (isRollButtonVisible) return;
                           if (controller.highlightedTiles.contains(piece.location)) {
-                            print("DEBUG: makeMove called on piece at ${piece.location}");
                             controller.makeMove(piece.location);
                           } else if (controller.turn == pIdx) {
                             if (controller.selectedPieceIndex == pieceIdx) {
@@ -1748,7 +1727,7 @@ class _GameScreenState extends State<GameScreen> {
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(26),
                           side: BorderSide(
-                            color: _blinkState ? Colors.yellow : Colors.transparent,
+                            color: _isBlinking ? Colors.yellow : Colors.transparent,
                             width: 3.5,
                           ),
                         ),
@@ -1852,28 +1831,26 @@ class _GameScreenState extends State<GameScreen> {
     final avatar = Uri.encodeComponent(selectedAnimals[controller.myPlayerIndex]);
     final room = Uri.encodeComponent(controller.multiplayerRoomId ?? "");
 
-    final wsProtocol = html.window.location.protocol == "https:" ? "wss:" : "ws:";
-    final host = html.window.location.host;
-    final wsUrl = "$wsProtocol//$host/api/ws/game?room=$room&playerIndex=${controller.myPlayerIndex}&email=$email&name=$name&avatar=$avatar&clientVersion=${GameController.appVersion}";
+    final wsUrl = getWsUrl("/api/ws/game?room=$room&playerIndex=${controller.myPlayerIndex}&email=$email&name=$name&avatar=$avatar&clientVersion=${GameController.appVersion}");
 
     try {
-      _gameSocket = html.WebSocket(wsUrl);
+      _gameChannel = WebSocketChannel.connect(Uri.parse(wsUrl));
       
       controller.onSendMultiplayerAction = (action) {
-        if (_gameSocket != null && _gameSocket!.readyState == html.WebSocket.OPEN) {
-          _gameSocket!.send(jsonEncode(action));
-        }
+        try {
+          _gameChannel?.sink.add(jsonEncode(action));
+        } catch (_) {}
       };
 
-      _gameSocket!.onMessage.listen((event) async {
-        final data = jsonDecode(event.data);
+      _gameChannel!.stream.listen((event) async {
+        final data = jsonDecode(event.toString());
         if (data["type"] == "outdated_client") {
           _showOutdatedClientDialog(context, data["minVersion"] ?? GameController.appVersion);
           return;
         }
         if (data["type"] == "ping") {
           try {
-            _gameSocket!.send(jsonEncode({"type": "pong"}));
+            _gameChannel?.sink.add(jsonEncode({"type": "pong"}));
           } catch (_) {}
           return;
         }
@@ -1995,11 +1972,7 @@ void _showOutdatedClientDialog(BuildContext context, String minVersion) {
         actions: [
           TextButton(
             onPressed: () {
-              if (kIsWeb) {
-                html.window.location.reload();
-              } else {
-                Navigator.pop(context);
-              }
+              reloadPage();
             },
             child: const Text("UPDATE NOW", style: TextStyle(color: Color(0xFF56AFC1), fontWeight: FontWeight.bold)),
           ),
