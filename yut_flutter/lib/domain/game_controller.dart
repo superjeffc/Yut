@@ -290,7 +290,6 @@ class GameController extends ChangeNotifier {
     if (dest == 32) {
       players[turn].score += piece.value;
       piece.location = 32;
-      piece.resetValue();
     }
 
     recalculatePlayerStats();
@@ -331,8 +330,6 @@ class GameController extends ChangeNotifier {
     if (isCapture) {
       statusText = "Captured Opponent's Piece!";
       tipsText = "Roll again!";
-      // Opponent capture gives another roll
-      board.resetRollArray();
       notifyListeners();
       if (turn == 1 && isComputerPlaying) {
         await Future.delayed(const Duration(milliseconds: 1000));
