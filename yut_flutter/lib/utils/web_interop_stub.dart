@@ -31,8 +31,9 @@ void removeLoader() {}
 void openExternalUrl(String url) async {
   try {
     final uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!launched) {
+      await launchUrl(uri, mode: LaunchMode.platformDefault);
     }
   } catch (e) {
     print("URL Launch Error: $e");
