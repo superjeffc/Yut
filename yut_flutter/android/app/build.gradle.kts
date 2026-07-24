@@ -23,10 +23,27 @@ android {
     }
 
     signingConfigs {
-        create("ciSigning") {
-            val ksFile = file("ci_debug.keystore")
-            if (ksFile.exists()) {
-                storeFile = ksFile
+        create("release") {
+            val localOfficialKs = file("/home/superjeffreyc_cs/AndroidStuff")
+            val ciOfficialKs = file("official_upload.keystore")
+            val ciDebugKs = file("ci_debug.keystore")
+
+            val envKsPass = System.getenv("KEYSTORE_PASSWORD") ?: ""
+            val envKeyAlias = System.getenv("KEY_ALIAS") ?: ""
+            val envKeyPass = System.getenv("KEY_PASSWORD") ?: ""
+
+            if (localOfficialKs.exists() && envKsPass.isNotEmpty()) {
+                storeFile = localOfficialKs
+                storePassword = envKsPass
+                keyAlias = envKeyAlias
+                keyPassword = envKeyPass
+            } else if (ciOfficialKs.exists() && envKsPass.isNotEmpty()) {
+                storeFile = ciOfficialKs
+                storePassword = envKsPass
+                keyAlias = envKeyAlias
+                keyPassword = envKeyPass
+            } else if (ciDebugKs.exists()) {
+                storeFile = ciDebugKs
                 storePassword = "androiddebugkey"
                 keyAlias = "androiddebugkey"
                 keyPassword = "androiddebugkey"
@@ -41,7 +58,7 @@ android {
 
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("ciSigning")
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 }

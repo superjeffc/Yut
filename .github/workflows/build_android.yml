@@ -22,23 +22,22 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Cache Persistent Signing Keystore
-        uses: actions/cache@v4
-        id: keystore-cache
-        with:
-          path: yut_flutter/android/app/ci_debug.keystore
-          key: android-keystore-persistent-v1
-
-      - name: Generate Keystore if Not Cached
-        if: steps.keystore-cache.outputs.cache-hit != 'true'
+      - name: Decode Official Play Store Keystore
+        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
         run: |
-          keytool -genkey -v -keystore yut_flutter/android/app/ci_debug.keystore -storepass androiddebugkey -alias androiddebugkey -keypass androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Yut, OU=YutGame, O=Yut, L=SF, ST=CA, C=US"
+          echo "$KEYSTORE_BASE64" | base64 -d > yut_flutter/android/app/official_upload.keystore
 
       - name: Print Keystore SHA-1 Fingerprint
         run: |
-          keytool -list -v -keystore yut_flutter/android/app/ci_debug.keystore -storepass androiddebugkey -alias androiddebugkey
+          keytool -list -v -keystore yut_flutter/android/app/official_upload.keystore -storepass huskyseawolfdane15 -alias androidalias
 
       - name: Build Android APK (.apk) & App Bundle (.aab)
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
           cd yut_flutter
           flutter pub get
