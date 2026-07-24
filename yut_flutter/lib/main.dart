@@ -912,15 +912,50 @@ class _TitleScreenState extends State<TitleScreen> with SingleTickerProviderStat
                     child: const Text("Unlink", style: TextStyle(color: Colors.orangeAccent)),
                   ),
                   TextButton(
-                    onPressed: () async {
-                      setStateDialog(() {
-                        isLoading = true;
-                      });
-                      await shop.deleteAccountAndCloudData();
-                      setStateDialog(() {
-                        isLoading = false;
-                        successMessage = "Account & cloud save data purged.";
-                      });
+                    onPressed: () {
+                      showDialog(
+                        context: context,
+                        builder: (confirmContext) {
+                          return AlertDialog(
+                            backgroundColor: const Color(0xFF2C3E50),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            title: const Row(
+                              children: [
+                                Icon(Icons.warning_amber_rounded, color: Colors.redAccent, size: 28),
+                                SizedBox(width: 10),
+                                Text("Delete Account?", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                              ],
+                            ),
+                            content: const Text(
+                              "Are you sure you want to permanently delete your linked account and cloud save data? All synced coins and unlocked avatars associated with this account will be erased. This action cannot be undone.",
+                              style: TextStyle(color: Colors.white70, fontSize: 13, height: 1.4),
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(confirmContext),
+                                child: const Text("CANCEL", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+                              ),
+                              ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.redAccent,
+                                  foregroundColor: Colors.white,
+                                ),
+                                onPressed: () async {
+                                  Navigator.pop(confirmContext);
+                                  setStateDialog(() {
+                                    isLoading = true;
+                                  });
+                                  await shop.deleteAccountAndCloudData();
+                                  setStateDialog(() {
+                                    isLoading = false;
+                                  });
+                                },
+                                child: const Text("DELETE PERMANENTLY", style: TextStyle(fontWeight: FontWeight.bold)),
+                              ),
+                            ],
+                          );
+                        },
+                      );
                     },
                     child: const Text("Delete Account", style: TextStyle(color: Colors.redAccent)),
                   ),
