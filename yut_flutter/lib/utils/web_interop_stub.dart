@@ -10,7 +10,6 @@ void openExternalUrl(String url) {}
 void triggerGoogleAuth(void Function(String) onSuccess, void Function(String) onError) async {
   try {
     final GoogleSignIn googleSignIn = GoogleSignIn(
-      clientId: "223698446706-bsii8tatf0giceemon51hj50c7u2pvn9.apps.googleusercontent.com",
       serverClientId: "223698446706-nf21ero1897j813o81db0nsmsrhavojs.apps.googleusercontent.com",
       scopes: ['email', 'profile'],
     );
