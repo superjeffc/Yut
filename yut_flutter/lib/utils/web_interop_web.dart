@@ -34,7 +34,11 @@ void triggerGoogleAuth(void Function(String) onSuccess, void Function(String) on
     final errorCallback = js.allowInterop((String errorMsg) {
       onError(errorMsg);
     });
-    js.context.callMethod('triggerGoogleAuth', [successCallback, errorCallback]);
+    js.context.callMethod('triggerGoogleAuth', [
+      '223698446706-nf21ero1897j813o81db0nsmsrhavojs.apps.googleusercontent.com',
+      successCallback,
+      errorCallback
+    ]);
   } catch (e) {
     onError(e.toString());
   }
