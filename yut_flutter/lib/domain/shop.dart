@@ -330,6 +330,11 @@ class Shop {
     }
   }
 
+  String _getApiUrl(String path) {
+    if (path.startsWith("http://") || path.startsWith("https://")) return path;
+    return "https://yut-game.pages.dev$path";
+  }
+
   Future<bool> deleteAccountAndCloudData() async {
     String? email = getLinkedEmail();
     unlinkAccount();
@@ -337,7 +342,7 @@ class Shop {
     if (email != null && email.isNotEmpty) {
       try {
         await http.post(
-          Uri.parse("/api/auth?action=delete_account"),
+          Uri.parse(_getApiUrl("/api/auth?action=delete_account")),
           headers: {"Content-Type": "application/json"},
           body: jsonEncode({"email": email}),
         ).timeout(const Duration(seconds: 5));
@@ -353,7 +358,7 @@ class Shop {
 
     try {
       final response = await http.post(
-        Uri.parse("/api/auth?action=google"),
+        Uri.parse(_getApiUrl("/api/auth?action=google")),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
           "token": token,
@@ -406,7 +411,7 @@ class Shop {
   Future<bool> loginAndSyncGoogle(String token, String email, String name) async {
     try {
       final response = await http.post(
-        Uri.parse("/api/auth?action=google"),
+        Uri.parse(_getApiUrl("/api/auth?action=google")),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
           "token": token,
