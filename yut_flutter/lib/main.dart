@@ -1867,9 +1867,13 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
                                           : ((controller.winnerIndex ?? (controller.players[0].hasWon() ? 0 : (controller.players[1].hasWon() ? 1 : null))) == controller.myPlayerIndex
                                               ? "Congratulations, you won!"
                                               : "Opponent wins!"))
-                                      : (controller.players[0].hasWon()
-                                          ? "Congratulations, you won!"
-                                          : (controller.isComputerPlaying ? "Computer wins!" : "Player 2 wins!")),
+                                      : (controller.isComputerPlaying
+                                          ? (controller.players[0].hasWon()
+                                              ? "Congratulations, you won!"
+                                              : "Computer wins!")
+                                          : (controller.players[0].hasWon()
+                                              ? "${controller.p1Name} Wins!"
+                                              : "${controller.p2Name} Wins!")),
                                   style: const TextStyle(fontSize: 18, color: Colors.amber),
                                   textAlign: TextAlign.center,
                                 ),
