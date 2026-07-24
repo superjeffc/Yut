@@ -1796,7 +1796,12 @@ class _GameScreenState extends State<GameScreen> {
                                   child: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      Image.asset("assets/images/coin.png", width: 22, height: 22),
+                                       Image.asset(
+                                         "assets/images/medal.png",
+                                         width: 22,
+                                         height: 22,
+                                         errorBuilder: (_, __, ___) => const Icon(Icons.monetization_on, color: Colors.amber, size: 22),
+                                       ),
                                       const SizedBox(width: 8),
                                       Text(
                                         "+${controller.lastAwardedCoins > 0 ? controller.lastAwardedCoins : (controller.isComputerPlaying && controller.players[0].hasWon() ? 3 : 1)} Coins Earned!",
