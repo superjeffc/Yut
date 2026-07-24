@@ -39,6 +39,8 @@ dependencies:
   http: ^1.2.0
   web_socket_channel: ^3.0.1
   google_sign_in: ^6.2.1
+  url_launcher: ^6.3.1
+  audioplayers: ^6.1.0
 
 dev_dependencies:
   flutter_test:

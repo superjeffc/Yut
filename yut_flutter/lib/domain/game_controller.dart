@@ -379,10 +379,14 @@ class GameController extends ChangeNotifier {
     }
   }
 
+  int lastAwardedCoins = 0;
+
   void awardCoins() {
     if (isComputerPlaying && players[0].hasWon()) {
+      lastAwardedCoins = 3;
       Shop.instance.addCoins(3);
     } else {
+      lastAwardedCoins = 1;
       Shop.instance.addCoins(1);
     }
   }

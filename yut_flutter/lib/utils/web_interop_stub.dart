@@ -1,11 +1,43 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:audioplayers/audioplayers.dart';
 
-void playBackgroundMusic() {}
-void pauseBackgroundMusic() {}
+AudioPlayer? _bgPlayer;
+
+void playBackgroundMusic() async {
+  try {
+    if (_bgPlayer == null) {
+      _bgPlayer = AudioPlayer();
+      await _bgPlayer!.setReleaseMode(ReleaseMode.loop);
+      await _bgPlayer!.play(AssetSource('audio/song.mp3'));
+    } else {
+      await _bgPlayer!.resume();
+    }
+  } catch (e) {
+    print("Audio error: $e");
+  }
+}
+
+void pauseBackgroundMusic() async {
+  try {
+    await _bgPlayer?.pause();
+  } catch (_) {}
+}
+
 void removeLoader() {}
-void openExternalUrl(String url) {}
+
+void openExternalUrl(String url) async {
+  try {
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
+  } catch (e) {
+    print("URL Launch Error: $e");
+  }
+}
 
 void triggerGoogleAuth(void Function(String) onSuccess, void Function(String) onError) async {
   try {

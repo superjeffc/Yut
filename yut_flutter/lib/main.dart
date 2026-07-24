@@ -1785,6 +1785,26 @@ class _GameScreenState extends State<GameScreen> {
                                   style: const TextStyle(fontSize: 18, color: Colors.amber),
                                   textAlign: TextAlign.center,
                                 ),
+                                const SizedBox(height: 14),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                  decoration: BoxDecoration(
+                                    color: Colors.amber.withOpacity(0.15),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: Colors.amber.withOpacity(0.4)),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Image.asset("assets/images/coin.png", width: 22, height: 22),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        "+${controller.lastAwardedCoins > 0 ? controller.lastAwardedCoins : (controller.isComputerPlaying && controller.players[0].hasWon() ? 3 : 1)} Coins Earned!",
+                                        style: const TextStyle(fontSize: 15, color: Colors.amberAccent, fontWeight: FontWeight.bold),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                                 const SizedBox(height: 24),
                                 Row(
                                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
