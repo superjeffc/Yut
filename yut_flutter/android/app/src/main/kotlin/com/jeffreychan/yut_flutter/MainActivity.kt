@@ -1,4 +1,4 @@
-package com.jeffreychan.yut_flutter
+package com.jeffreychan.yunnori
 
 import io.flutter.embedding.android.FlutterActivity
 
