@@ -17,7 +17,10 @@ export async function onRequest(context) {
   // Handle client_id action (GET)
   if (request.method === "GET" && action === "client_id") {
     return new Response(
-      JSON.stringify({ clientId: env.GOOGLE_CLIENT_ID || "" }),
+      JSON.stringify({
+        clientId: env.GOOGLE_CLIENT_ID || "223698446706-nf21ero1897j813o81db0nsmsrhavojs.apps.googleusercontent.com",
+        androidClientId: env.ANDROID_GOOGLE_CLIENT_ID || "223698446706-bsii8tatf0giceemon51hj50c7u2pvn9.apps.googleusercontent.com"
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
@@ -59,6 +62,11 @@ export async function onRequest(context) {
       }
 
       const payload = await verifyRes.json();
+      const allowedAuds = [
+        env.GOOGLE_CLIENT_ID || "223698446706-nf21ero1897j813o81db0nsmsrhavojs.apps.googleusercontent.com",
+        env.ANDROID_GOOGLE_CLIENT_ID || "223698446706-bsii8tatf0giceemon51hj50c7u2pvn9.apps.googleusercontent.com",
+        "223698446706-bsii8tatf0giceemon51hj50c7u2pvn9.apps.googleusercontent.com"
+      ];
       const googleId = payload.sub;
       const email = payload.email;
       const name = payload.given_name || (payload.name ? payload.name.split(" ")[0] : "Player");
