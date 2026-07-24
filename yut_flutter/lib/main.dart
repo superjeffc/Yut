@@ -1862,9 +1862,9 @@ class _GameScreenState extends State<GameScreen> {
                                        ),
                                       const SizedBox(width: 8),
                                       Text(
-                                        "+${controller.lastAwardedCoins > 0 ? controller.lastAwardedCoins : (controller.isComputerPlaying && controller.players[0].hasWon() ? 3 : 1)} Coins Earned!",
-                                        style: const TextStyle(fontSize: 15, color: Colors.amberAccent, fontWeight: FontWeight.bold),
-                                      ),
+                                         "+${controller.lastAwardedCoins > 0 ? controller.lastAwardedCoins : (controller.isMultiplayer ? ((controller.winnerIndex == controller.myPlayerIndex || controller.statusText == "Opponent Forfeited!") ? 5 : 2) : (controller.isComputerPlaying && controller.players[0].hasWon() ? 3 : 1))} Coins Earned!",
+                                         style: const TextStyle(fontSize: 15, color: Colors.amberAccent, fontWeight: FontWeight.bold),
+                                       ),
                                     ],
                                   ),
                                 ),
@@ -1973,6 +1973,7 @@ class _GameScreenState extends State<GameScreen> {
             controller.isGameOver = true;
             controller.winnerIndex = controller.myPlayerIndex;
             controller.statusText = "Opponent Forfeited!";
+            controller.awardCoins();
             controller.notifyListeners();
           }
         }

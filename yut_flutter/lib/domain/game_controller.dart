@@ -386,9 +386,23 @@ class GameController extends ChangeNotifier {
   int lastAwardedCoins = 0;
 
   void awardCoins() {
-    if (isComputerPlaying && players[0].hasWon()) {
-      lastAwardedCoins = 3;
-      Shop.instance.addCoins(3);
+    if (isComputerPlaying) {
+      if (players[0].hasWon()) {
+        lastAwardedCoins = 3;
+        Shop.instance.addCoins(3);
+      } else {
+        lastAwardedCoins = 1;
+        Shop.instance.addCoins(1);
+      }
+    } else if (isMultiplayer) {
+      final winIdx = winnerIndex ?? (players[0].hasWon() ? 0 : (players[1].hasWon() ? 1 : -1));
+      if (winIdx == myPlayerIndex || statusText == "Opponent Forfeited!") {
+        lastAwardedCoins = 5;
+        Shop.instance.addCoins(5);
+      } else {
+        lastAwardedCoins = 2;
+        Shop.instance.addCoins(2);
+      }
     } else {
       lastAwardedCoins = 1;
       Shop.instance.addCoins(1);
