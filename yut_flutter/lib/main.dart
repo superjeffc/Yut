@@ -1072,13 +1072,18 @@ class _MatchmakerDialogState extends State<MatchmakerDialog> {
 
     final wsProtocol = html.window.location.protocol == "https:" ? "wss:" : "ws:";
     final host = html.window.location.host;
-    final wsUrl = "$wsProtocol//$host/api/ws/lobby?email=$email&name=$name&avatar=$avatar";
+    final wsUrl = "$wsProtocol//$host/api/ws/lobby?email=$email&name=$name&avatar=$avatar&clientVersion=${GameController.appVersion}";
 
     try {
       _lobbySocket = html.WebSocket(wsUrl);
 
       _lobbySocket!.onMessage.listen((event) {
         final data = jsonDecode(event.data);
+        if (data["type"] == "outdated_client") {
+          Navigator.pop(context);
+          _showOutdatedClientDialog(context, data["minVersion"] ?? GameController.appVersion);
+          return;
+        }
         if (data["type"] == "waiting") {
           setState(() {
             _status = "Searching for an opponent...";
@@ -1849,7 +1854,7 @@ class _GameScreenState extends State<GameScreen> {
 
     final wsProtocol = html.window.location.protocol == "https:" ? "wss:" : "ws:";
     final host = html.window.location.host;
-    final wsUrl = "$wsProtocol//$host/api/ws/game?room=$room&playerIndex=${controller.myPlayerIndex}&email=$email&name=$name&avatar=$avatar";
+    final wsUrl = "$wsProtocol//$host/api/ws/game?room=$room&playerIndex=${controller.myPlayerIndex}&email=$email&name=$name&avatar=$avatar&clientVersion=${GameController.appVersion}";
 
     try {
       _gameSocket = html.WebSocket(wsUrl);
@@ -1862,6 +1867,10 @@ class _GameScreenState extends State<GameScreen> {
 
       _gameSocket!.onMessage.listen((event) async {
         final data = jsonDecode(event.data);
+        if (data["type"] == "outdated_client") {
+          _showOutdatedClientDialog(context, data["minVersion"] ?? GameController.appVersion);
+          return;
+        }
         if (data["type"] == "ping") {
           try {
             _gameSocket!.send(jsonEncode({"type": "pong"}));
@@ -1962,6 +1971,42 @@ class _GameScreenState extends State<GameScreen> {
       },
     );
   }
+}
+
+void _showOutdatedClientDialog(BuildContext context, String minVersion) {
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (context) {
+      return AlertDialog(
+        backgroundColor: const Color(0xFF2C3E50),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.system_update, color: Colors.orangeAccent, size: 28),
+            SizedBox(width: 10),
+            Text("Update Required", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: Text(
+          "A new version of Yut Game (v$minVersion) is required to play online. Please update your app to continue.",
+          style: const TextStyle(color: Colors.white70, fontSize: 14),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              if (kIsWeb) {
+                html.window.location.reload();
+              } else {
+                Navigator.pop(context);
+              }
+            },
+            child: const Text("UPDATE NOW", style: TextStyle(color: Color(0xFF56AFC1), fontWeight: FontWeight.bold)),
+          ),
+        ],
+      );
+    },
+  );
 }
 
 // ============================================================================

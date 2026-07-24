@@ -1,5 +1,21 @@
 import { DurableObject } from "cloudflare:workers";
 
+const MIN_CLIENT_VERSION = "4.3.0";
+
+function parseVersion(v) {
+  return (v || "0.0.0").split(".").map(n => parseInt(n, 10) || 0);
+}
+
+function isVersionOutdated(clientVer, minVer) {
+  const c = parseVersion(clientVer);
+  const m = parseVersion(minVer);
+  for (let i = 0; i < 3; i++) {
+    if (c[i] < m[i]) return true;
+    if (c[i] > m[i]) return false;
+  }
+  return false;
+}
+
 // Matchmaking Queue Lobby Singleton
 export class YutLobby extends DurableObject {
   constructor(ctx, env) {
@@ -16,11 +32,22 @@ export class YutLobby extends DurableObject {
     const [client, server] = Object.values(pair);
 
     const url = new URL(request.url);
+    const clientVersion = url.searchParams.get("clientVersion") || "1.0.0";
     const email = url.searchParams.get("email") || "";
     const name = url.searchParams.get("name") || "Player";
     const avatar = url.searchParams.get("avatar") || "seal";
 
     server.accept();
+
+    if (isVersionOutdated(clientVersion, MIN_CLIENT_VERSION)) {
+      server.send(JSON.stringify({
+        type: "outdated_client",
+        minVersion: MIN_CLIENT_VERSION,
+        message: `Your client version (${clientVersion}) is outdated. Please update to version ${MIN_CLIENT_VERSION} to play online.`
+      }));
+      server.close();
+      return new Response(null, { status: 101, webSocket: client });
+    }
 
     // Check if another player is already waiting
     if (this.waitingPlayer && this.waitingPlayer.email !== email) {
@@ -78,16 +105,40 @@ export class YutLobby extends DurableObject {
 export class YutGameRoom extends DurableObject {
   constructor(ctx, env) {
     super(ctx, env);
-    this.players = [null, null]; // [player0, player1] where player is { ws, email, name, avatar }
+    this.players = [null, null]; // [player0, player1] where player is { ws, email, name, avatar, lastSeen }
     this.gameState = {
       turn: 0,
       p1Pieces: [-1, -1, -1, -1],
       p2Pieces: [-1, -1, -1, -1],
+      p1Values: [1, 1, 1, 1],
+      p2Values: [1, 1, 1, 1],
       rollsLeft: [],
       canRoll: true,
       isGameOver: false,
       winnerIndex: -1
     };
+
+    // Heartbeat check every 10 seconds
+    setInterval(() => {
+      for (let i = 0; i < 2; i++) {
+        const p = this.players[i];
+        if (p) {
+          if (Date.now() - p.lastSeen > 20000) {
+            console.log(`Player ${i} timed out`);
+            try { p.ws.close(); } catch (_) {}
+            this.players[i] = null;
+            this.broadcast({
+              type: "opponent_disconnected",
+              playerIndex: i
+            });
+          } else {
+            try {
+              p.ws.send(JSON.stringify({ type: "ping" }));
+            } catch (_) {}
+          }
+        }
+      }
+    }, 10000);
   }
 
   async fetch(request) {
@@ -99,6 +150,7 @@ export class YutGameRoom extends DurableObject {
     const [client, server] = Object.values(pair);
 
     const url = new URL(request.url);
+    const clientVersion = url.searchParams.get("clientVersion") || "1.0.0";
     const playerIndex = parseInt(url.searchParams.get("playerIndex") || "0", 10);
     const email = url.searchParams.get("email") || "";
     const name = url.searchParams.get("name") || "Player";
@@ -106,11 +158,22 @@ export class YutGameRoom extends DurableObject {
 
     server.accept();
 
+    if (isVersionOutdated(clientVersion, MIN_CLIENT_VERSION)) {
+      server.send(JSON.stringify({
+        type: "outdated_client",
+        minVersion: MIN_CLIENT_VERSION,
+        message: `Your client version (${clientVersion}) is outdated. Please update to version ${MIN_CLIENT_VERSION} to play online.`
+      }));
+      server.close();
+      return new Response(null, { status: 101, webSocket: client });
+    }
+
     this.players[playerIndex] = {
       ws: server,
       email,
       name,
-      avatar
+      avatar,
+      lastSeen: Date.now()
     };
 
     // If both players connected, broadcast initialization
@@ -128,6 +191,12 @@ export class YutGameRoom extends DurableObject {
     server.addEventListener("message", (msg) => {
       try {
         const action = JSON.parse(msg.data);
+        if (action.type === "pong") {
+          if (this.players[playerIndex]) {
+            this.players[playerIndex].lastSeen = Date.now();
+          }
+          return;
+        }
         this.handleGameAction(playerIndex, action);
       } catch (_) {}
     });
@@ -155,6 +224,7 @@ export class YutGameRoom extends DurableObject {
 
       const roll = action.rollName;
       this.gameState.rollsLeft.push(roll);
+      this.gameState.lastActionWasCapture = false;
 
       // Mo or Yut grants an extra roll
       if (roll === "Yut" || roll === "Mo") {
@@ -174,6 +244,9 @@ export class YutGameRoom extends DurableObject {
 
       this.gameState.p1Pieces = action.p1Pieces;
       this.gameState.p2Pieces = action.p2Pieces;
+      this.gameState.p1Values = action.p1Values || [1, 1, 1, 1];
+      this.gameState.p2Values = action.p2Values || [1, 1, 1, 1];
+      this.gameState.lastActionWasCapture = !!action.isCapture;
 
       // Remove consumed roll
       const rollIdx = this.gameState.rollsLeft.indexOf(action.rollUsed);
@@ -183,14 +256,22 @@ export class YutGameRoom extends DurableObject {
 
       this.gameState.turn = action.nextTurn;
 
-      // Check if all pieces finished (position 32)
-      const p1Finished = this.gameState.p1Pieces.every(pos => pos === 32);
-      const p2Finished = this.gameState.p2Pieces.every(pos => pos === 32);
+      // Calculate total score from finished pieces (location 32)
+      let p1Score = 0;
+      let p2Score = 0;
+      for (let i = 0; i < 4; i++) {
+        if (this.gameState.p1Pieces[i] === 32) {
+          p1Score += (this.gameState.p1Values ? this.gameState.p1Values[i] : 1);
+        }
+        if (this.gameState.p2Pieces[i] === 32) {
+          p2Score += (this.gameState.p2Values ? this.gameState.p2Values[i] : 1);
+        }
+      }
 
-      if (p1Finished) {
+      if (action.isGameOver || p1Score >= 4) {
         this.gameState.isGameOver = true;
         this.gameState.winnerIndex = 0;
-      } else if (p2Finished) {
+      } else if (p2Score >= 4) {
         this.gameState.isGameOver = true;
         this.gameState.winnerIndex = 1;
       }
