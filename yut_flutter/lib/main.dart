@@ -4,6 +4,7 @@ import 'dart:math';
 import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
@@ -161,7 +162,7 @@ class TitleScreen extends StatefulWidget {
   State<TitleScreen> createState() => _TitleScreenState();
 }
 
-class _TitleScreenState extends State<TitleScreen> with SingleTickerProviderStateMixin {
+class _TitleScreenState extends State<TitleScreen> with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   late AnimationController _ticker;
   final List<Snowflake> _snowflakes = [];
   final double _snowHeight = 800;
@@ -172,6 +173,7 @@ class _TitleScreenState extends State<TitleScreen> with SingleTickerProviderStat
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _ticker = AnimationController(vsync: this, duration: const Duration(seconds: 10))
       ..addListener(_tickSnow)
       ..repeat();
@@ -212,8 +214,19 @@ class _TitleScreenState extends State<TitleScreen> with SingleTickerProviderStat
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _ticker.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive || state == AppLifecycleState.hidden) {
+      pauseBackgroundMusic();
+    } else if (state == AppLifecycleState.resumed) {
+      updateMusicPlayback();
+    }
   }
 
   @override
@@ -761,11 +774,14 @@ class _TitleScreenState extends State<TitleScreen> with SingleTickerProviderStat
               ListTile(
                 leading: const Icon(Icons.share, color: Colors.cyan),
                 title: const Text("Share App", style: TextStyle(color: Colors.white)),
-                onTap: () {
+                onTap: () async {
                   Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("Link copied to clipboard!")),
-                  );
+                  await Clipboard.setData(const ClipboardData(text: "https://yut.superjeffc.com"));
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("Link copied to clipboard! (https://yut.superjeffc.com)")),
+                    );
+                  }
                 },
               ),
               ListTile(
@@ -1224,7 +1240,7 @@ class GameScreen extends StatefulWidget {
   State<GameScreen> createState() => _GameScreenState();
 }
 
-class _GameScreenState extends State<GameScreen> {
+class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
   WebSocketChannel? _gameChannel;
   Timer? _blinkTimer;
   bool _isBlinking = false;
@@ -1232,6 +1248,7 @@ class _GameScreenState extends State<GameScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _blinkTimer = Timer.periodic(const Duration(milliseconds: 600), (timer) {
       if (mounted) {
         setState(() {
@@ -1250,9 +1267,20 @@ class _GameScreenState extends State<GameScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _blinkTimer?.cancel();
     _gameChannel?.sink.close();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive || state == AppLifecycleState.hidden) {
+      pauseBackgroundMusic();
+    } else if (state == AppLifecycleState.resumed) {
+      updateMusicPlayback();
+    }
   }
   
   // Calculates coordinates dynamically based on display dimensions
