@@ -34,6 +34,10 @@ jobs:
         run: |
           keytool -genkey -v -keystore yut_flutter/android/app/ci_debug.keystore -storepass androiddebugkey -alias androiddebugkey -keypass androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Yut, OU=YutGame, O=Yut, L=SF, ST=CA, C=US"
 
+      - name: Print Keystore SHA-1 Fingerprint
+        run: |
+          keytool -list -v -keystore yut_flutter/android/app/ci_debug.keystore -storepass androiddebugkey -alias androiddebugkey
+
       - name: Build Android APK (.apk) & App Bundle (.aab)
         run: |
           cd yut_flutter

@@ -818,12 +818,16 @@ class _TitleScreenState extends State<TitleScreen> with SingleTickerProviderStat
 
             void checkGoogleConfig() async {
               try {
-                final response = await http.get(Uri.parse("/api/auth?action=client_id")).timeout(const Duration(seconds: 4));
+                final response = await http.get(Uri.parse("https://yut-game.pages.dev/api/auth?action=client_id")).timeout(const Duration(seconds: 4));
                 if (response.statusCode == 200) {
                   final data = jsonDecode(response.body);
-                  googleClientId = data["clientId"] ?? "";
+                  googleClientId = data["clientId"] ?? "223698446706-nf21ero1897j813o81db0nsmsrhavojs.apps.googleusercontent.com";
+                } else {
+                  googleClientId = "223698446706-nf21ero1897j813o81db0nsmsrhavojs.apps.googleusercontent.com";
                 }
-              } catch (_) {}
+              } catch (_) {
+                googleClientId = "223698446706-nf21ero1897j813o81db0nsmsrhavojs.apps.googleusercontent.com";
+              }
               if (context.mounted) {
                 setStateDialog(() {
                   isCheckingConfig = false;
