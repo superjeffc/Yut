@@ -1845,7 +1845,7 @@ class _GameScreenState extends State<GameScreen> {
     final email = Uri.encodeComponent(shop.getLinkedEmail() ?? "anon_${Random().nextInt(10000)}");
     final name = Uri.encodeComponent(shop.getLinkedName() ?? "Player");
     final selectedAnimals = shop.getSelectedAnimals();
-    final avatar = Uri.encodeComponent(selectedAnimals[controller.myPlayerIndex]);
+    final avatar = Uri.encodeComponent(selectedAnimals.isNotEmpty ? selectedAnimals[0] : "Seal");
     final room = Uri.encodeComponent(controller.multiplayerRoomId ?? "");
 
     final wsUrl = getWsUrl("/api/ws/game?room=$room&playerIndex=${controller.myPlayerIndex}&email=$email&name=$name&avatar=$avatar&clientVersion=${GameController.appVersion}");
