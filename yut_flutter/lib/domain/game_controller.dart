@@ -47,8 +47,11 @@ class GameController extends ChangeNotifier {
     resetGame();
   }
 
+  int? winnerIndex;
+
   void resetGame() {
     isGameOver = false;
+    winnerIndex = null;
     isRollInProgress = false;
     isMoveInProgress = false;
     turn = 0;
@@ -296,6 +299,7 @@ class GameController extends ChangeNotifier {
 
     if (players[turn].hasWon()) {
       isGameOver = true;
+      winnerIndex = turn;
       statusText = turn == 0 ? "$p1Name Wins!" : "$p2Name Wins!";
       awardCoins();
       
@@ -576,7 +580,14 @@ class GameController extends ChangeNotifier {
     print("DEBUG: syncMultiplayerState turn=$turn, p1=$p1Pos, p2=$p2Pos, p1Val=$p1Val, p2Val=$p2Val, rolls=$rolls, canRoll=$canRoll, lastActionWasCapture=$lastActionWasCapture");
 
     if (isGameOver) {
-      statusText = winnerIdx == 0 ? "$p1Name Wins!" : "$p2Name Wins!";
+      if (players[0].hasWon()) {
+        winnerIndex = 0;
+      } else if (players[1].hasWon()) {
+        winnerIndex = 1;
+      } else {
+        winnerIndex = winnerIdx;
+      }
+      statusText = winnerIndex == 0 ? "$p1Name Wins!" : "$p2Name Wins!";
       tipsText = "Game Over.";
     } else {
       if (board.rollEmpty()) {

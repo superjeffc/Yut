@@ -1834,7 +1834,7 @@ class _GameScreenState extends State<GameScreen> {
                                   controller.isMultiplayer
                                       ? (controller.statusText == "Opponent Forfeited!"
                                           ? "Opponent forfeited. Congratulations, you won!"
-                                          : (controller.statusText.contains("Player ${controller.myPlayerIndex + 1}")
+                                          : ((controller.winnerIndex ?? (controller.players[0].hasWon() ? 0 : (controller.players[1].hasWon() ? 1 : null))) == controller.myPlayerIndex
                                               ? "Congratulations, you won!"
                                               : "Opponent wins!"))
                                       : (controller.players[0].hasWon()
@@ -1966,11 +1966,12 @@ class _GameScreenState extends State<GameScreen> {
           _handleMultiplayerStateUpdate(controller, newState);
         }
         else if (data["type"] == "opponent_disconnected") {
-          if (mounted) {
+          if (mounted && !controller.isGameOver) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text("Opponent disconnected. You win by forfeit!")),
             );
             controller.isGameOver = true;
+            controller.winnerIndex = controller.myPlayerIndex;
             controller.statusText = "Opponent Forfeited!";
             controller.notifyListeners();
           }
