@@ -133,6 +133,28 @@ export async function onRequest(context) {
       );
     }
 
+    if (action === "delete_account") {
+      const { email, googleId } = body;
+      if (!email && !googleId) {
+        return new Response(JSON.stringify({ error: "Email or Google ID is required" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      if (googleId) {
+        await db.prepare("DELETE FROM users WHERE google_id = ?").bind(googleId).run();
+      }
+      if (email) {
+        await db.prepare("DELETE FROM users WHERE email = ?").bind(email).run();
+      }
+
+      return new Response(
+        JSON.stringify({ success: true, message: "Account and cloud save data purged successfully" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     return new Response(JSON.stringify({ error: "Invalid action" }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

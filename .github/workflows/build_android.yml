@@ -22,13 +22,20 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Build Android App Bundle (.aab)
+      - name: Build Android APK (.apk) & App Bundle (.aab)
         run: |
           cd yut_flutter
           flutter pub get
+          flutter build apk --release
           flutter build aab --release
 
-      - name: Upload Android App Bundle Artifact
+      - name: Upload Android APK Artifact (.apk for testing)
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release-apk
+          path: yut_flutter/build/app/outputs/flutter-apk/app-release.apk
+
+      - name: Upload Android App Bundle Artifact (.aab for Play Store)
         uses: actions/upload-artifact@v4
         with:
           name: app-release-aab

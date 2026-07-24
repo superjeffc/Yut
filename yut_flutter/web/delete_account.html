@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Yut Game - Account & Data Deletion Request</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+      color: #f8fafc;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+    .card {
+      background: rgba(30, 41, 59, 0.85);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 20px;
+      padding: 36px;
+      max-width: 520px;
+      width: 100%;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+    }
+    h1 {
+      font-size: 24px;
+      font-weight: 700;
+      color: #38bdf8;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    p {
+      font-size: 14px;
+      color: #94a3b8;
+      line-height: 1.6;
+      margin-bottom: 20px;
+    }
+    .info-box {
+      background: rgba(15, 23, 42, 0.6);
+      border-left: 4px solid #0284c7;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 24px;
+    }
+    .info-box ul {
+      margin-left: 18px;
+      margin-top: 8px;
+      color: #cbd5e1;
+      font-size: 13px;
+    }
+    .info-box li {
+      margin-bottom: 4px;
+    }
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: #e2e8f0;
+      margin-bottom: 8px;
+    }
+    input[type="email"] {
+      width: 100%;
+      padding: 12px 16px;
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 10px;
+      color: #fff;
+      font-size: 14px;
+      margin-bottom: 20px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    input[type="email"]:focus {
+      border-color: #38bdf8;
+    }
+    button {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.1s, opacity 0.2s;
+    }
+    button:hover {
+      opacity: 0.9;
+    }
+    button:active {
+      transform: scale(0.98);
+    }
+    .result {
+      margin-top: 16px;
+      font-size: 13px;
+      text-align: center;
+      min-height: 20px;
+    }
+    .success { color: #4ade80; }
+    .error { color: #f87171; }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <h1>🗑️ Account & Data Deletion</h1>
+    <p>If you linked a Google account to Yut Game, you can request the permanent deletion of your account record and cloud save data.</p>
+    
+    <div class="info-box">
+      <strong>What data gets deleted?</strong>
+      <ul>
+        <li>Linked email address & Google account ID</li>
+        <li>Given profile display name</li>
+        <li>Cloud save data (coins, unlocked animal avatars, win/loss stats)</li>
+      </ul>
+    </div>
+
+    <form id="deleteForm">
+      <label for="email">Enter your linked Email address:</label>
+      <input type="email" id="email" placeholder="user@example.com" required>
+      <button type="submit" id="btnSubmit">Request Account & Data Deletion</button>
+    </form>
+
+    <div id="result" class="result"></div>
+  </div>
+
+  <script>
+    document.getElementById('deleteForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('email').value.trim();
+      const resultDiv = document.getElementById('result');
+      const btn = document.getElementById('btnSubmit');
+
+      if (!email) return;
+
+      btn.disabled = true;
+      btn.textContent = 'Processing...';
+      resultDiv.textContent = '';
+      resultDiv.className = 'result';
+
+      try {
+        const response = await fetch('/api/auth?action=delete_account', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: email })
+        });
+
+        const data = await response.json();
+        if (response.ok && data.success) {
+          resultDiv.textContent = '✓ Your account and cloud data have been permanently deleted.';
+          resultDiv.className = 'result success';
+          document.getElementById('email').value = '';
+        } else {
+          resultDiv.textContent = '✕ Error: ' + (data.error || 'Failed to delete data.');
+          resultDiv.className = 'result error';
+        }
+      } catch (err) {
+        resultDiv.textContent = '✕ Network error: Unable to connect to server.';
+        resultDiv.className = 'result error';
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Request Account & Data Deletion';
+      }
+    });
+  </script>
+</body>
+</html>
