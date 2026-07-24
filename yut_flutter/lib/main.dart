@@ -1878,9 +1878,15 @@ class _GameScreenState extends State<GameScreen> {
           controller.p1Name = p1Profile["name"] ?? "Player 1";
           controller.p2Name = p2Profile["name"] ?? "Player 2";
 
-          final opponentIdx = (controller.myPlayerIndex + 1) % 2;
-          final oppProfile = players[opponentIdx] as Map<String, dynamic>;
-          shop.changeAvatar(opponentIdx, oppProfile["avatar"] ?? "seal");
+          String p1Avatar = p1Profile["avatar"] ?? "Seal";
+          String p2Avatar = p2Profile["avatar"] ?? "Penguin";
+
+          if (p1Avatar.toLowerCase() == p2Avatar.toLowerCase()) {
+            p2Avatar = (p1Avatar.toLowerCase() == "penguin") ? "Seal" : "Penguin";
+          }
+
+          shop.changeAvatar(0, p1Avatar);
+          shop.changeAvatar(1, p2Avatar);
           controller.syncMultiplayerState(data["state"]);
         } 
         else if (data["type"] == "state") {
