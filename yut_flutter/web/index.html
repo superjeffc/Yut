@@ -1,19 +1,15 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <!--
-    If you are serving your web app in a path other than the root, change the
-    href value below to reflect the base path you are serving from.
+  <script>
+    if (window.opener && (window.location.hash.includes("id_token=") || window.location.search.includes("id_token="))) {
+      try {
+        window.opener.postMessage({ type: "GOOGLE_ID_TOKEN", hash: window.location.hash || window.location.search }, window.location.origin);
+      } catch (_) {}
+      window.close();
+    }
+  </script>
 
-    The path provided below has to start and end with a slash "/" in order for
-    it to work correctly.
-
-    For more details:
-    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
-
-    This is a placeholder for base href that will be replaced by the value of
-    the `--base-href` argument provided to `flutter build`.
-  -->
   <base href="./">
 
   <meta charset="UTF-8">
@@ -47,14 +43,6 @@
     </style>
   </div>
 
-  <!--
-    You can customize the "flutter_bootstrap.js" script.
-    This is useful to provide a custom configuration to the Flutter loader
-    or to give the user feedback during the initialization process.
-
-    For more details:
-    * https://docs.flutter.dev/platform-integration/web/initialization
-  -->
   <script>
     window.flutterWebRenderer = "html";
 
@@ -83,32 +71,100 @@
         }, 300);
       }
     }
+
+    let _googleAuthPendingCallback = null;
+    let _googleAuthErrorCallback = null;
+
+    window.addEventListener("message", function(event) {
+      if (event.origin === window.location.origin && event.data && event.data.type === "GOOGLE_ID_TOKEN") {
+        const hashStr = event.data.hash || "";
+        const params = new URLSearchParams(hashStr.split("#")[1] || hashStr.split("?")[1]);
+        const jwt = params.get("id_token");
+        if (jwt && _googleAuthPendingCallback) {
+          try {
+            const payload = JSON.parse(atob(jwt.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+            _googleAuthPendingCallback(JSON.stringify({
+              googleId: payload.sub,
+              email: payload.email,
+              name: payload.given_name || (payload.name ? payload.name.split(" ")[0] : "Player"),
+              token: jwt
+            }));
+            _googleAuthPendingCallback = null;
+            _googleAuthErrorCallback = null;
+          } catch (_) {}
+        }
+      }
+    });
+
     function triggerGoogleAuth(clientIdArg, onSuccess, onError) {
+      _googleAuthPendingCallback = onSuccess;
+      _googleAuthErrorCallback = onError;
+
       const validClientId = (typeof clientIdArg === 'string' && clientIdArg.includes('.apps.googleusercontent.com'))
         ? clientIdArg
         : '223698446706-nf21ero1897j813o81db0nsmsrhavojs.apps.googleusercontent.com';
 
+      if (typeof google !== 'undefined' && google.accounts && google.accounts.id) {
+        google.accounts.id.initialize({
+          client_id: validClientId,
+          callback: (response) => {
+            if (response && response.credential) {
+              const jwt = response.credential;
+              try {
+                const payload = JSON.parse(atob(jwt.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+                if (onSuccess) {
+                  onSuccess(JSON.stringify({
+                    googleId: payload.sub,
+                    email: payload.email,
+                    name: payload.given_name || (payload.name ? payload.name.split(" ")[0] : "Player"),
+                    token: jwt
+                  }));
+                }
+              } catch (e) {
+                if (onError) onError("Failed to parse token payload");
+              }
+            } else {
+              if (onError) onError("Sign in failed");
+            }
+          }
+        });
+        google.accounts.id.prompt((notification) => {
+          if (notification.isNotDisplayed() || notification.isSkippedMoment() || notification.isDismissedMoment()) {
+            openOAuthPopup(validClientId, onSuccess, onError);
+          }
+        });
+        return;
+      }
+
+      openOAuthPopup(validClientId, onSuccess, onError);
+    }
+
+    function openOAuthPopup(validClientId, onSuccess, onError) {
       const redirectUri = window.location.origin + window.location.pathname;
       const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${encodeURIComponent(validClientId)}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=id_token&scope=email%20profile&nonce=yutgame`;
       
       const popup = window.open(url, "Google Sign In", "width=500,height=600");
-      
+      if (!popup) {
+        if (onError) onError("Popup blocked by browser. Please allow popups for this site.");
+        return;
+      }
+
       const timer = setInterval(() => {
         try {
           if (!popup || popup.closed) {
             clearInterval(timer);
-            if (onError) onError("Popup closed by user");
             return;
           }
           
-          const href = popup.location.href;
+          let href = "";
+          try { href = popup.location.href; } catch (_) {}
           if (href && href.includes("id_token=")) {
             clearInterval(timer);
             const params = new URLSearchParams(href.split("#")[1] || href.split("?")[1]);
             const jwt = params.get("id_token");
-            const payload = JSON.parse(atob(jwt.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
             popup.close();
-            if (onSuccess) {
+            if (jwt && onSuccess) {
+              const payload = JSON.parse(atob(jwt.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
               onSuccess(JSON.stringify({
                 googleId: payload.sub,
                 email: payload.email,
@@ -117,10 +173,8 @@
               }));
             }
           }
-        } catch (_) {
-          // Cross-origin access errors expected during consent page redirecting
-        }
-      }, 500);
+        } catch (_) {}
+      }, 300);
     }
   </script>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
