@@ -83,9 +83,13 @@
         }, 300);
       }
     }
-    function triggerGoogleAuth(clientId, onSuccess, onError) {
+    function triggerGoogleAuth(clientIdArg, onSuccess, onError) {
+      const validClientId = (typeof clientIdArg === 'string' && clientIdArg.includes('.apps.googleusercontent.com'))
+        ? clientIdArg
+        : '223698446706-nf21ero1897j813o81db0nsmsrhavojs.apps.googleusercontent.com';
+
       const redirectUri = window.location.origin + window.location.pathname;
-      const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=id_token&scope=email%20profile&nonce=yutgame`;
+      const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${encodeURIComponent(validClientId)}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=id_token&scope=email%20profile&nonce=yutgame`;
       
       const popup = window.open(url, "Google Sign In", "width=500,height=600");
       
@@ -119,6 +123,7 @@
       }, 500);
     }
   </script>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>
