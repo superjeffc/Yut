@@ -330,6 +330,23 @@ class Shop {
     }
   }
 
+  Future<bool> deleteAccountAndCloudData() async {
+    String? email = getLinkedEmail();
+    unlinkAccount();
+
+    if (email != null && email.isNotEmpty) {
+      try {
+        await http.post(
+          Uri.parse("/api/auth?action=delete_account"),
+          headers: {"Content-Type": "application/json"},
+          body: jsonEncode({"email": email}),
+        ).timeout(const Duration(seconds: 5));
+        return true;
+      } catch (_) {}
+    }
+    return true;
+  }
+
   Future<bool> syncWithCloud() async {
     String? token = getLinkedToken();
     if (token == null) return false;

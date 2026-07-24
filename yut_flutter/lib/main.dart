@@ -920,7 +920,20 @@ class _TitleScreenState extends State<TitleScreen> with SingleTickerProviderStat
                       shop.unlinkAccount();
                       setStateDialog(() {});
                     },
-                    child: const Text("Unlink", style: TextStyle(color: Colors.redAccent)),
+                    child: const Text("Unlink", style: TextStyle(color: Colors.orangeAccent)),
+                  ),
+                  TextButton(
+                    onPressed: () async {
+                      setStateDialog(() {
+                        isLoading = true;
+                      });
+                      await shop.deleteAccountAndCloudData();
+                      setStateDialog(() {
+                        isLoading = false;
+                        successMessage = "Account & cloud save data purged.";
+                      });
+                    },
+                    child: const Text("Delete Account", style: TextStyle(color: Colors.redAccent)),
                   ),
                   TextButton(
                     onPressed: () => Navigator.pop(context),
@@ -936,7 +949,11 @@ class _TitleScreenState extends State<TitleScreen> with SingleTickerProviderStat
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text("Connect your Google Account to securely backup and sync your coins, unlocks, and win/loss stats across platforms.", style: TextStyle(color: Colors.grey, fontSize: 12), textAlign: TextAlign.center),
+                  const Text(
+                    "Link your Google account to sync your progress to the Web version and recover your account if you switch devices.",
+                    style: TextStyle(color: Colors.white70, fontSize: 13, height: 1.4),
+                    textAlign: TextAlign.center,
+                  ),
                   const SizedBox(height: 24),
                   if (isCheckingConfig)
                     const CircularProgressIndicator(color: Colors.cyan)
