@@ -461,8 +461,8 @@ class _TitleScreenState extends State<TitleScreen> with SingleTickerProviderStat
                 ],
               ),
               content: SizedBox(
-                width: double.maxFinite,
-                height: 380,
+                width: MediaQuery.of(context).size.width * 0.95,
+                height: 420,
                 child: ListView(
                   children: shop.costs.keys.map((animal) {
                     bool isOwn = shop.isUnlocked(animal);
@@ -474,44 +474,55 @@ class _TitleScreenState extends State<TitleScreen> with SingleTickerProviderStat
                       color: const Color(0xFF34495E),
                       margin: const EdgeInsets.symmetric(vertical: 6),
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        padding: const EdgeInsets.all(10),
                         child: Row(
                           children: [
                             // Icon Avatar Image
                             Image.asset(
                               shop.getIconImagePath(animal),
-                              width: 44,
-                              height: 44,
-                              errorBuilder: (_, __, ___) => const Icon(Icons.pets, color: Colors.white),
+                              width: 48,
+                              height: 48,
+                              errorBuilder: (_, __, ___) => const Icon(Icons.pets, color: Colors.white, size: 36),
                             ),
-                            const SizedBox(width: 12),
+                            const SizedBox(width: 10),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Text(
-                                    animal,
-                                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                                  FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    alignment: Alignment.centerLeft,
+                                    child: Text(
+                                      animal,
+                                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                                    ),
                                   ),
-                                  const SizedBox(height: 4),
+                                  const SizedBox(height: 3),
                                   if (!isOwn)
                                     Row(
+                                      mainAxisSize: MainAxisSize.min,
                                       children: [
                                         const Icon(Icons.monetization_on, color: Colors.amber, size: 14),
-                                        const SizedBox(width: 2),
-                                        Text("$cost coins", style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                                        const SizedBox(width: 3),
+                                        Text("$cost coins", style: const TextStyle(color: Colors.amberAccent, fontSize: 12, fontWeight: FontWeight.w600)),
                                       ],
                                     )
                                   else
-                                    const Text("Unlocked", style: TextStyle(color: Colors.green, fontSize: 12)),
+                                    const Text("Unlocked", style: TextStyle(color: Colors.greenAccent, fontSize: 12, fontWeight: FontWeight.bold)),
                                 ],
                               ),
                             ),
-
+                            const SizedBox(width: 8),
                             // Actions: Purchase or Select
                             if (!isOwn)
                               ElevatedButton(
-                                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF27AE60)),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF27AE60),
+                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                  minimumSize: const Size(60, 36),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                ),
                                 onPressed: coins >= cost
                                     ? () {
                                         if (shop.makePurchase(animal)) {
@@ -520,48 +531,60 @@ class _TitleScreenState extends State<TitleScreen> with SingleTickerProviderStat
                                         }
                                       }
                                     : null,
-                                child: const Text("BUY"),
+                                child: const Text("BUY", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                               )
                             else
                               Row(
+                                mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Column(
+                                    mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      const Text("P1", style: TextStyle(color: Colors.cyan, fontSize: 10)),
-                                      Checkbox(
-                                        value: isP1Selected,
-                                        activeColor: Colors.cyan,
-                                        onChanged: (val) async {
-                                          if (val == true) {
-                                            if (selected[1] == animal) {
-                                              shop.switchAvatars();
-                                            } else {
-                                              shop.changeAvatar(0, animal);
+                                      const Text("P1", style: TextStyle(color: Colors.cyan, fontSize: 10, fontWeight: FontWeight.bold)),
+                                      SizedBox(
+                                        width: 32,
+                                        height: 32,
+                                        child: Checkbox(
+                                          value: isP1Selected,
+                                          activeColor: Colors.cyan,
+                                          onChanged: (val) async {
+                                            if (val == true) {
+                                              if (selected[1] == animal) {
+                                                shop.switchAvatars();
+                                              } else {
+                                                shop.changeAvatar(0, animal);
+                                              }
+                                              await shop.saveAvatars();
+                                              setDialogState(() {});
                                             }
-                                            await shop.saveAvatars();
-                                            setDialogState(() {});
-                                          }
-                                        },
+                                          },
+                                        ),
                                       ),
                                     ],
                                   ),
+                                  const SizedBox(width: 6),
                                   Column(
+                                    mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      const Text("P2", style: TextStyle(color: Colors.orange, fontSize: 10)),
-                                      Checkbox(
-                                        value: isP2Selected,
-                                        activeColor: Colors.orange,
-                                        onChanged: (val) async {
-                                          if (val == true) {
-                                            if (selected[0] == animal) {
-                                              shop.switchAvatars();
-                                            } else {
-                                              shop.changeAvatar(1, animal);
+                                      const Text("P2", style: TextStyle(color: Colors.orange, fontSize: 10, fontWeight: FontWeight.bold)),
+                                      SizedBox(
+                                        width: 32,
+                                        height: 32,
+                                        child: Checkbox(
+                                          value: isP2Selected,
+                                          activeColor: Colors.orange,
+                                          onChanged: (val) async {
+                                            if (val == true) {
+                                              if (selected[0] == animal) {
+                                                shop.switchAvatars();
+                                              } else {
+                                                shop.changeAvatar(1, animal);
+                                              }
+                                              await shop.saveAvatars();
+                                              setDialogState(() {});
                                             }
-                                            await shop.saveAvatars();
-                                            setDialogState(() {});
-                                          }
-                                        },
+                                          },
+                                        ),
                                       ),
                                     ],
                                   ),
