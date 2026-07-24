@@ -245,10 +245,12 @@ class GameController extends ChangeNotifier {
     // Build a list of intermediate tiles
     List<int> tilePath = calculateIntermediateTiles(startLocation, dest, pathChars);
 
-    for (int nextTile in tilePath) {
-      await Future.delayed(const Duration(milliseconds: 200));
-      piece.location = nextTile;
+    for (int i = 0; i < tilePath.length; i++) {
+      piece.location = tilePath[i];
       notifyListeners();
+      if (i < tilePath.length - 1) {
+        await Future.delayed(const Duration(milliseconds: 180));
+      }
     }
 
     piece.location = dest;

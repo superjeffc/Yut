@@ -274,114 +274,115 @@ class Board {
 
   // Returns character array paths for step-by-step UI translations
   List<String> calculatePath(int start, int dest, int numMoves) {
-    List<String> path = [];
-
-    if (numMoves > 0) {
-      path = List.filled(numMoves, '');
-    } else {
-      path = List.filled(1, '');
-    }
+    int effectiveMoves = numMoves > 0 ? numMoves : 1;
+    List<String> path = List.filled(effectiveMoves, '');
 
     int j = 0;
+    void safeSet(String char) {
+      if (j < path.length) {
+        path[j++] = char;
+      }
+    }
 
     if (numMoves == -1) {
       // Double choices cases
-      if (start == 0 && dest == 28) path[0] = 'E';
-      else if (start == 0 && dest == 19) path[0] = 'L';
-      else if (start == 15 && dest == 14) path[0] = 'U';
-      else if (start == 15 && dest == 24) path[0] = 'A';
-      else if (start == 22 && dest == 26) path[0] = 'E';
-      else if (start == 22 && dest == 21) path[0] = 'A';
+      if (start == 0 && dest == 28) safeSet('E');
+      else if (start == 0 && dest == 19) safeSet('L');
+      else if (start == 15 && dest == 14) safeSet('U');
+      else if (start == 15 && dest == 24) safeSet('A');
+      else if (start == 22 && dest == 26) safeSet('E');
+      else if (start == 22 && dest == 21) safeSet('A');
       // Single choices cases
-      else if (start > 0 && start <= 5) path[0] = 'D';
-      else if (start > 5 && start <= 10) path[0] = 'R';
-      else if (start > 10 && start <= 14) path[0] = 'U';
-      else if (start > 15 && start <= 19) path[0] = 'L';
-      else if (start > 19 && start <= 24) path[0] = 'A';
-      else if (start > 24 && start <= 28) path[0] = 'E';
+      else if (start > 0 && start <= 5) safeSet('D');
+      else if (start > 5 && start <= 10) safeSet('R');
+      else if (start > 10 && start <= 14) safeSet('U');
+      else if (start > 15 && start <= 19) safeSet('L');
+      else if (start > 19 && start <= 24) safeSet('A');
+      else if (start > 24 && start <= 28) safeSet('E');
+      else safeSet('F');
     } 
     else if (start == 0) {
-      for (int i = 0; i < numMoves; i++) path[j++] = 'F';
+      for (int i = 0; i < effectiveMoves; i++) safeSet('F');
     } 
     else if (start == 5) {
       if (dest >= 20) {
-        for (int i = 0; i < numMoves; i++) path[j++] = 'C';
+        for (int i = 0; i < effectiveMoves; i++) safeSet('C');
       } else {
-        for (int i = 0; i < numMoves; i++) path[j++] = 'L';
+        for (int i = 0; i < effectiveMoves; i++) safeSet('L');
       }
     } 
     else if (start == 10) {
       if (dest >= 22) {
-        for (int i = 0; i < numMoves; i++) path[j++] = 'B';
+        for (int i = 0; i < effectiveMoves; i++) safeSet('B');
       } else {
-        for (int i = 0; i < numMoves; i++) path[j++] = 'D';
+        for (int i = 0; i < effectiveMoves; i++) safeSet('D');
       }
     } 
     else if (start == 20) {
-      for (int i = 0; i < numMoves; i++) path[j++] = 'C';
+      for (int i = 0; i < effectiveMoves; i++) safeSet('C');
     } 
     else if (start == 21) {
-      if (numMoves < 5) {
-        for (int i = 0; i < numMoves; i++) path[j++] = 'C';
+      if (effectiveMoves < 5) {
+        for (int i = 0; i < effectiveMoves; i++) safeSet('C');
       } else {
-        for (int i = 0; i < numMoves - 1; i++) path[j++] = 'C';
-        path[j] = 'R';
+        for (int i = 0; i < effectiveMoves - 1; i++) safeSet('C');
+        safeSet('R');
       }
     } 
     else if (start == 22) {
       if (dest >= 27 || dest == 0) {
-        if (numMoves <= 3) {
-          for (int i = 0; i < numMoves; i++) path[j++] = 'B';
+        if (effectiveMoves <= 3) {
+          for (int i = 0; i < effectiveMoves; i++) safeSet('B');
         } else {
-          for (int i = 0; i < 3; i++) path[j++] = 'B';
-          for (int i = 3; i < numMoves; i++) path[j++] = 'F';
+          for (int i = 0; i < 3; i++) safeSet('B');
+          for (int i = 3; i < effectiveMoves; i++) safeSet('F');
         }
       } else {
-        if (numMoves <= 3) {
-          for (int i = 0; i < numMoves; i++) path[j++] = 'C';
+        if (effectiveMoves <= 3) {
+          for (int i = 0; i < effectiveMoves; i++) safeSet('C');
         } else {
-          for (int i = 0; i < 3; i++) path[j++] = 'C';
-          for (int i = 3; i < numMoves; i++) path[j++] = 'R';
+          for (int i = 0; i < 3; i++) safeSet('C');
+          for (int i = 3; i < effectiveMoves; i++) safeSet('R');
         }
       }
     } 
     else if (start == 23) {
-      if (numMoves <= 2) {
-        for (int i = 0; i < numMoves; i++) path[j++] = 'C';
+      if (effectiveMoves <= 2) {
+        for (int i = 0; i < effectiveMoves; i++) safeSet('C');
       } else {
-        for (int i = 0; i < 2; i++) path[j++] = 'C';
-        for (int i = 2; i < numMoves; i++) path[j++] = 'R';
+        for (int i = 0; i < 2; i++) safeSet('C');
+        for (int i = 2; i < effectiveMoves; i++) safeSet('R');
       }
     } 
     else if (start == 24) {
-      path[j++] = 'C';
-      if (numMoves > 1) {
-        for (int i = 1; i < numMoves; i++) path[j++] = 'R';
+      safeSet('C');
+      if (effectiveMoves > 1) {
+        for (int i = 1; i < effectiveMoves; i++) safeSet('R');
       }
     } 
     else if (start == 25) {
-      for (int i = 0; i < numMoves; i++) path[j++] = 'B';
+      for (int i = 0; i < effectiveMoves; i++) safeSet('B');
     } 
     else if (start == 26) {
-      if (numMoves < 5) {
-        for (int i = 0; i < numMoves; i++) path[j++] = 'B';
+      if (effectiveMoves < 5) {
+        for (int i = 0; i < effectiveMoves; i++) safeSet('B');
       } else {
-        for (int i = 0; i < numMoves - 1; i++) path[j++] = 'B';
-        path[j] = 'F';
+        for (int i = 0; i < effectiveMoves - 1; i++) safeSet('B');
+        safeSet('F');
       }
     } 
     else if (start == 27) {
-      if (numMoves <= 2) {
-        for (int i = 0; i < numMoves; i++) path[j++] = 'B';
+      if (effectiveMoves <= 2) {
+        for (int i = 0; i < effectiveMoves; i++) safeSet('B');
       } else {
-        for (int i = 0; i < 2; i++) path[j++] = 'B';
-        for (int i = 2; i < numMoves; i++) path[j++] = 'F';
+        for (int i = 0; i < 2; i++) safeSet('B');
+        for (int i = 2; i < effectiveMoves; i++) safeSet('F');
       }
     } 
     else if (start == 28) {
-      path[j++] = 'B';
-      if (numMoves > 1) {
-        for (int i = 1; i < numMoves; i++) path[j++] = 'F';
+      safeSet('B');
+      if (effectiveMoves > 1) {
+        for (int i = 1; i < effectiveMoves; i++) safeSet('F');
       }
     } 
     else {
@@ -390,39 +391,43 @@ class Board {
 
       if (dest == 0 || dest == 32) {
         if (s == 15) {
-          for (int i = 0; i < numMoves; i++) path[j++] = 'R';
+          for (int i = 0; i < effectiveMoves; i++) safeSet('R');
         } else if (s == 16) {
-          if (numMoves <= 4) {
-            for (int i = 0; i < numMoves; i++) path[j++] = 'R';
+          if (effectiveMoves <= 4) {
+            for (int i = 0; i < effectiveMoves; i++) safeSet('R');
           } else {
-            for (int i = 0; i < 4; i++) path[j++] = 'R';
-            for (int i = 4; i < numMoves; i++) path[j++] = 'F';
+            for (int i = 0; i < 4; i++) safeSet('R');
+            for (int i = 4; i < effectiveMoves; i++) safeSet('F');
           }
         } else if (s == 17) {
-          if (numMoves <= 3) {
-            for (int i = 0; i < numMoves; i++) path[j++] = 'R';
+          if (effectiveMoves <= 3) {
+            for (int i = 0; i < effectiveMoves; i++) safeSet('R');
           } else {
-            for (int i = 0; i < 3; i++) path[j++] = 'R';
-            for (int i = 3; i < numMoves; i++) path[j++] = 'F';
+            for (int i = 0; i < 3; i++) safeSet('R');
+            for (int i = 3; i < effectiveMoves; i++) safeSet('F');
           }
         } else if (s == 18) {
-          if (numMoves <= 2) {
-            for (int i = 0; i < numMoves; i++) path[j++] = 'R';
+          if (effectiveMoves <= 2) {
+            for (int i = 0; i < effectiveMoves; i++) safeSet('R');
           } else {
-            for (int i = 0; i < 2; i++) path[j++] = 'R';
-            for (int i = 2; i < numMoves; i++) path[j++] = 'F';
+            for (int i = 0; i < 2; i++) safeSet('R');
+            for (int i = 2; i < effectiveMoves; i++) safeSet('F');
           }
         } else if (s == 19) {
-          if (numMoves <= 1) {
-            for (int i = 0; i < numMoves; i++) path[j++] = 'R';
+          if (effectiveMoves <= 1) {
+            for (int i = 0; i < effectiveMoves; i++) safeSet('R');
           } else {
-            for (int i = 0; i < 1; i++) path[j++] = 'R';
-            for (int i = 1; i < numMoves; i++) path[j++] = 'F';
+            for (int i = 0; i < 1; i++) safeSet('R');
+            for (int i = 1; i < effectiveMoves; i++) safeSet('F');
           }
         }
       } else {
         for (int i = s; i < dest; i++) {
-          path[j++] = outerMoves[i];
+          if (i >= 0 && i < outerMoves.length) {
+            safeSet(outerMoves[i]);
+          } else {
+            safeSet('F');
+          }
         }
       }
     }
