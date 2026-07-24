@@ -26,6 +26,8 @@ class GameController extends ChangeNotifier {
   List<List<int>> currentMoveSet = []; // Current destinations [[dest, rollAmount]]
   Set<int> highlightedTiles = {}; // Destination tiles to highlight
 
+  static const String appVersion = "4.3.0";
+
   String statusText = "Player 1's Turn";
   String tipsText = "Roll the sticks!";
 
