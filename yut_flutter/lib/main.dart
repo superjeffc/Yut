@@ -873,11 +873,6 @@ class _TitleScreenState extends State<TitleScreen> with SingleTickerProviderStat
                 final name = result["name"] ?? "";
 
                 final success = await shop.loginAndSyncGoogle(token, email, name);
-                if (success) {
-                  setStateDialog(() {
-                    successMessage = "Google Account connected & synced!";
-                  });
-                }
               } catch (e) {
                 setStateDialog(() {
                   errorMessage = e.toString().replaceAll("Exception:", "").trim();
@@ -900,21 +895,11 @@ class _TitleScreenState extends State<TitleScreen> with SingleTickerProviderStat
                     Text("Linked as: ${shop.getLinkedName() ?? 'Google User'}", style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
                     Text(shop.getLinkedEmail() ?? "", style: const TextStyle(color: Colors.cyan, fontSize: 14)),
                     const SizedBox(height: 16),
-                    const Row(
-                      children: [
-                        Icon(Icons.check_circle, color: Colors.greenAccent, size: 18),
-                        SizedBox(width: 8),
-                        Text("Account connected & sync active", style: TextStyle(color: Colors.greenAccent, fontSize: 12)),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
                     if (isLoading)
                       const Center(child: CircularProgressIndicator(color: Colors.cyan))
                     else ...[
                       if (errorMessage.isNotEmpty)
                         Text(errorMessage, style: const TextStyle(color: Colors.redAccent, fontSize: 12)),
-                      if (successMessage.isNotEmpty)
-                        Text(successMessage, style: const TextStyle(color: Colors.greenAccent, fontSize: 12)),
                     ],
                   ],
                 ),
