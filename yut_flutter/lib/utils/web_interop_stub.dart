@@ -13,6 +13,9 @@ void triggerGoogleAuth(void Function(String) onSuccess, void Function(String) on
       serverClientId: "223698446706-nf21ero1897j813o81db0nsmsrhavojs.apps.googleusercontent.com",
       scopes: ['email', 'profile'],
     );
+    try {
+      await googleSignIn.signOut();
+    } catch (_) {}
     final account = await googleSignIn.signIn();
     if (account == null) {
       onError("Sign in cancelled by user.");
