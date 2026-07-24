@@ -1540,7 +1540,7 @@ class _GameScreenState extends State<GameScreen> {
                             children: [
                               Image.asset(shop.getIconImagePath(selectedAvatars[0]), width: avatarWidth),
                               SizedBox(width: spacing),
-                              Text("Player 1", style: TextStyle(fontWeight: FontWeight.bold, fontSize: textFontSize)),
+                              Text(controller.p1Name, style: TextStyle(fontWeight: FontWeight.bold, fontSize: textFontSize)),
                               SizedBox(width: spacing),
                               // Completed medals
                               ...List.generate(controller.players[0].score, (_) => Icon(Icons.star, color: Colors.amber, size: starSize)),
@@ -1597,7 +1597,7 @@ class _GameScreenState extends State<GameScreen> {
                                     ),
                                     ...List.generate(controller.players[1].score, (_) => Icon(Icons.star, color: Colors.amber, size: starSize)),
                                     SizedBox(width: spacing),
-                                    Text(controller.isComputerPlaying ? "Computer" : "Player 2", style: TextStyle(fontWeight: FontWeight.bold, fontSize: textFontSize)),
+                                    Text(controller.p2Name, style: TextStyle(fontWeight: FontWeight.bold, fontSize: textFontSize)),
                                     SizedBox(width: spacing),
                                     Image.asset(shop.getIconImagePath(selectedAvatars[1]), width: avatarWidth),
                                   ],
@@ -1870,6 +1870,11 @@ class _GameScreenState extends State<GameScreen> {
         }
         if (data["type"] == "init") {
           final players = data["players"] as List;
+          final p1Profile = players[0] as Map<String, dynamic>;
+          final p2Profile = players[1] as Map<String, dynamic>;
+          controller.p1Name = p1Profile["name"] ?? "Player 1";
+          controller.p2Name = p2Profile["name"] ?? "Player 2";
+
           final opponentIdx = (controller.myPlayerIndex + 1) % 2;
           final oppProfile = players[opponentIdx] as Map<String, dynamic>;
           shop.changeAvatar(opponentIdx, oppProfile["avatar"] ?? "seal");

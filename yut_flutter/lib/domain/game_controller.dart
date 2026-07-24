@@ -29,6 +29,9 @@ class GameController extends ChangeNotifier {
   String statusText = "Player 1's Turn";
   String tipsText = "Roll the sticks!";
 
+  String p1Name = "Player 1";
+  String p2Name = "Player 2";
+
   bool soundOn = true;
 
   bool isMultiplayer = false;
@@ -53,7 +56,11 @@ class GameController extends ChangeNotifier {
     board.reset();
     players[0].reset();
     players[1].reset();
-    statusText = "Player 1's Turn";
+    if (!isMultiplayer) {
+      p1Name = "Player 1";
+      p2Name = isComputerPlaying ? "Computer" : "Player 2";
+    }
+    statusText = "$p1Name's Turn";
     tipsText = "Roll the sticks!";
     notifyListeners();
   }
@@ -286,7 +293,7 @@ class GameController extends ChangeNotifier {
 
     if (players[turn].hasWon()) {
       isGameOver = true;
-      statusText = turn == 0 ? "Player 1 Wins!" : (isComputerPlaying ? "Computer Wins!" : "Player 2 Wins!");
+      statusText = turn == 0 ? "$p1Name Wins!" : "$p2Name Wins!";
       awardCoins();
       
       // Stats tracking (only recorded when playing against the computer)
@@ -331,7 +338,7 @@ class GameController extends ChangeNotifier {
       if (board.rollEmpty() || (board.hasOnlyNegativeRoll() && players[turn].hasNoPiecesOnBoard())) {
         endTurn();
       } else {
-        statusText = turn == 0 ? "Player 1's Move" : "Player 2's Move";
+        statusText = turn == 0 ? "$p1Name's Move" : "$p2Name's Move";
         tipsText = "Select next piece to move.";
         notifyListeners();
         
@@ -360,7 +367,7 @@ class GameController extends ChangeNotifier {
   void endTurn() {
     board.endTurn();
     turn = board.playerTurn;
-    statusText = turn == 0 ? "Player 1's Turn" : (isComputerPlaying ? "Computer's Turn" : "Player 2's Turn");
+    statusText = turn == 0 ? "$p1Name's Turn" : "$p2Name's Turn";
     tipsText = "Roll the sticks!";
     notifyListeners();
 
@@ -564,7 +571,7 @@ class GameController extends ChangeNotifier {
     print("DEBUG: syncMultiplayerState turn=$turn, p1=$p1Pos, p2=$p2Pos, p1Val=$p1Val, p2Val=$p2Val, rolls=$rolls, canRoll=$canRoll, lastActionWasCapture=$lastActionWasCapture");
 
     if (isGameOver) {
-      statusText = winnerIdx == 0 ? "Player 1 Wins!" : "Player 2 Wins!";
+      statusText = winnerIdx == 0 ? "$p1Name Wins!" : "$p2Name Wins!";
       tipsText = "Game Over.";
     } else {
       if (board.rollEmpty()) {
