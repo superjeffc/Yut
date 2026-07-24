@@ -287,12 +287,15 @@ class Shop {
   }
 
   String? getLinkedName() {
+    String? rawName;
     if (_prefs != null) {
       try {
-        return _prefs!.getString("linked_name");
+        rawName = _prefs!.getString("linked_name");
       } catch (_) {}
     }
-    return _fallbackStorage["linked_name"] as String?;
+    rawName ??= _fallbackStorage["linked_name"] as String?;
+    if (rawName == null || rawName.isEmpty) return null;
+    return rawName.trim().split(RegExp(r'\s+')).first;
   }
 
   String? getLinkedToken() {

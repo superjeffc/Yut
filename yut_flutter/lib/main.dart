@@ -1879,47 +1879,8 @@ class _GameScreenState extends State<GameScreen> {
           controller.syncMultiplayerState(data["state"]);
         } 
         else if (data["type"] == "state") {
-          final newState = data["state"];
-          final oppIdx = (controller.myPlayerIndex + 1) % 2;
-          final oldPos = List<int>.from(controller.players[oppIdx].pieces.map((p) => p.location));
-          final newPos = List<int>.from((oppIdx == 0 ? newState["p1Pieces"] : newState["p2Pieces"]).cast<int>());
-          final oldRollsLength = controller.board.rollIndex;
-          final newRolls = newState["rollsLeft"] as List;
-
-          if (controller.turn == oppIdx && newRolls.length > oldRollsLength) {
-            final newRollVal = controller.getRollValue(newRolls.last as String);
-            controller.currentRollValue = newRollVal;
-            controller.isRollInProgress = true;
-            controller.statusText = "Opponent is rolling...";
-            controller.notifyListeners();
-            
-            await Future.delayed(const Duration(milliseconds: 1200));
-            controller.board.addRoll(newRollVal);
-            controller.isRollInProgress = false;
-            controller.notifyListeners();
-          }
-
-          int changedPieceIdx = -1;
-          int targetDest = -1;
-          for (int i = 0; i < 4; i++) {
-            if (newPos[i] != oldPos[i]) {
-              changedPieceIdx = i;
-              targetDest = newPos[i];
-              break;
-            }
-          }
-
-          if (controller.turn == oppIdx && changedPieceIdx != -1) {
-            controller.selectedPieceIndex = changedPieceIdx;
-            controller.highlightedTiles = { targetDest };
-            final rollUsedName = newState["rollsLeft"].isEmpty ? "Do" : (newState["rollsLeft"].last as String);
-            final rollUsedVal = controller.getRollValue(rollUsedName);
-            controller.currentMoveSet = [[targetDest, rollUsedVal]];
-            
-            await controller.makeMove(targetDest);
-          }
-
-          controller.syncMultiplayerState(newState);
+          final newState = data["state"] as Map<String, dynamic>;
+          _handleMultiplayerStateUpdate(controller, newState);
         }
         else if (data["type"] == "opponent_disconnected") {
           if (mounted) {
@@ -1933,6 +1894,61 @@ class _GameScreenState extends State<GameScreen> {
         }
       });
     } catch (_) {}
+  }
+
+  bool _isProcessingState = false;
+  final List<Map<String, dynamic>> _stateQueue = [];
+
+  void _handleMultiplayerStateUpdate(GameController controller, Map<String, dynamic> newState) async {
+    _stateQueue.add(newState);
+    if (_isProcessingState) return;
+    _isProcessingState = true;
+
+    while (_stateQueue.isNotEmpty) {
+      final stateToProcess = _stateQueue.removeAt(0);
+      final oppIdx = (controller.myPlayerIndex + 1) % 2;
+      final oldPos = List<int>.from(controller.players[oppIdx].pieces.map((p) => p.location));
+      final newPos = List<int>.from((oppIdx == 0 ? stateToProcess["p1Pieces"] : stateToProcess["p2Pieces"]).cast<int>());
+      final oldRollsLength = controller.board.rollIndex;
+      final newRolls = stateToProcess["rollsLeft"] as List;
+
+      if (controller.turn == oppIdx && newRolls.length > oldRollsLength) {
+        final newRollVal = controller.getRollValue(newRolls.last as String);
+        controller.currentRollValue = newRollVal;
+        controller.isRollInProgress = true;
+        controller.statusText = "Opponent is rolling...";
+        controller.notifyListeners();
+        
+        await Future.delayed(const Duration(milliseconds: 1200));
+        controller.board.addRoll(newRollVal);
+        controller.isRollInProgress = false;
+        controller.notifyListeners();
+      }
+
+      int changedPieceIdx = -1;
+      int targetDest = -1;
+      for (int i = 0; i < 4; i++) {
+        if (newPos[i] != oldPos[i]) {
+          changedPieceIdx = i;
+          targetDest = newPos[i];
+          break;
+        }
+      }
+
+      if (controller.turn == oppIdx && changedPieceIdx != -1) {
+        controller.selectedPieceIndex = changedPieceIdx;
+        controller.highlightedTiles = { targetDest };
+        final rollUsedName = stateToProcess["rollsLeft"].isEmpty ? "Do" : (stateToProcess["rollsLeft"].last as String);
+        final rollUsedVal = controller.getRollValue(rollUsedName);
+        controller.currentMoveSet = [[targetDest, rollUsedVal]];
+        
+        await controller.makeMove(targetDest);
+      }
+
+      controller.syncMultiplayerState(stateToProcess);
+    }
+
+    _isProcessingState = false;
   }
 
   void _showQuitConfirmation(BuildContext context) {
