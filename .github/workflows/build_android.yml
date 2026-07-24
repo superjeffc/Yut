@@ -22,6 +22,18 @@ jobs:
           channel: 'stable'
           cache: true
 
+      - name: Cache Persistent Signing Keystore
+        uses: actions/cache@v4
+        id: keystore-cache
+        with:
+          path: yut_flutter/android/app/ci_debug.keystore
+          key: android-keystore-persistent-v1
+
+      - name: Generate Keystore if Not Cached
+        if: steps.keystore-cache.outputs.cache-hit != 'true'
+        run: |
+          keytool -genkey -v -keystore yut_flutter/android/app/ci_debug.keystore -storepass androiddebugkey -alias androiddebugkey -keypass androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Yut, OU=YutGame, O=Yut, L=SF, ST=CA, C=US"
+
       - name: Build Android APK (.apk) & App Bundle (.aab)
         run: |
           cd yut_flutter

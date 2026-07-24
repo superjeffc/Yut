@@ -22,11 +22,26 @@ android {
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        create("ciSigning") {
+            val ksFile = file("ci_debug.keystore")
+            if (ksFile.exists()) {
+                storeFile = ksFile
+                storePassword = "androiddebugkey"
+                keyAlias = "androiddebugkey"
+                keyPassword = "androiddebugkey"
+            } else {
+                storeFile = signingConfigs.getByName("debug").storeFile
+                storePassword = signingConfigs.getByName("debug").storePassword
+                keyAlias = signingConfigs.getByName("debug").keyAlias
+                keyPassword = signingConfigs.getByName("debug").keyPassword
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("ciSigning")
         }
     }
 }
