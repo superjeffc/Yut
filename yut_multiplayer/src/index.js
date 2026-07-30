@@ -254,7 +254,13 @@ export class YutGameRoom extends DurableObject {
         this.gameState.rollsLeft.splice(rollIdx, 1);
       }
 
+      const previousTurn = this.gameState.turn;
       this.gameState.turn = action.nextTurn;
+
+      // If turn changed to the next player, OR capture occurred, OR rolls array is empty, enable rolling for the turn player!
+      if (action.nextTurn !== previousTurn || action.isCapture || this.gameState.rollsLeft.length === 0) {
+        this.gameState.canRoll = true;
+      }
 
       // Calculate total score from finished pieces (location 32)
       let p1Score = 0;
