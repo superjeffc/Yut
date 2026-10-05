@@ -2,6 +2,6 @@
   "name": "yut-multiplayer-do",
   "version": "1.0.0",
   "devDependencies": {
-    "wrangler": "^3.60.0"
+    "wrangler": "^4.147.0"
   }
 }
